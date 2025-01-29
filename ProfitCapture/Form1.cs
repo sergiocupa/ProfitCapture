@@ -79,7 +79,7 @@ namespace ProfitCapture
             FormClosing += Form1_FormClosing;
 
             Chart = new CandleChart() { Dock = DockStyle.Fill };
-            tabPage1.Controls.Add(Chart);
+            panel5.Controls.Add(Chart);
 
 
             Chart.TestData();
