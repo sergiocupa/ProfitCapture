@@ -1,3 +1,4 @@
+using ProfitCapture.UI;
 using ProfitCapture.UI.Template;
 
 
@@ -6,6 +7,18 @@ namespace ProfitCapture
 {
     public partial class Form1 : Form
     {
+
+        private void OpenButton_Click(object sender, EventArgs e)
+        {
+            try
+            {
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+        }
 
 
         private void Open_Click(object sender, EventArgs e)
@@ -67,8 +80,8 @@ namespace ProfitCapture
             }
         }
 
-        Capture Capture;
-        CandleChart Chart;
+        Capture     Capture;
+        AssetViewer AssetView;
 
         public Form1()
         {
@@ -78,11 +91,9 @@ namespace ProfitCapture
 
             FormClosing += Form1_FormClosing;
 
-            Chart = new CandleChart() { Dock = DockStyle.Fill };
-            panel5.Controls.Add(Chart);
+            AssetView = new AssetViewer(panel3, panel4, panel5);
 
-
-            Chart.TestData();
+            AssetView.ViewAssetList();
         }
 
         

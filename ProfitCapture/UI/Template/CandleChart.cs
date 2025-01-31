@@ -8,29 +8,28 @@ namespace ProfitCapture.UI.Template
     public partial class CandleChart : UserControl
     {
 
-
-        // Pegar a posicao atual
-        //  Primeira interacao, plotar posicao 0 do eixo X
-        //    Antes, definir Min o valor X, o valor Max = Min + SizeX
-        //    Se valor atual estourar Max, entao deslocar Max = Atual, deslocar Min = Max - SizeX
-        ...
-
-
-        public void Append(DateTime x, double open, double close, double min, double max, bool is_update = false, int serie = 0, Color? color = null)
+        public void Append(DateTime x, double open, double close, double low, double high, TimeSpan? step = null, bool is_update = false, int serie = 0, Color? color = null)
         {
             try
             {
                 if (serie >= 0 && serie < Chart.Series.Count)
                 {
-                    UpdateY(min,max);
+                    UpdateY(low,high);
 
                     if(is_update)
                     {
-
+                        var pt = Chart.Series[serie].Points.LastOrDefault();
+                        if(pt != null)
+                        {
+                            var pp = (CandlePoint)pt;
+                            pp.XValue  = x.ToOADate();
+                            pp.InputX  = x;
+                            pp.YValues = new double[] { low, high, open, close };
+                        }
                     }
                     else
                     {
-                        var dp = new CandlePoint() { InputX = x, XValue = x.ToOADate(), YValues = new double[] { open, max, min, close } };
+                        var dp = new CandlePoint() { InputX = x, XValue = x.ToOADate(), YValues = new double[] { low, high, open, close } };
                         if (color.HasValue)
                         {
                             dp.Color = color.Value;
@@ -39,46 +38,14 @@ namespace ProfitCapture.UI.Template
                         Chart.Series[serie].Points.Add(dp);
                     }
 
-                   
-
-                    if(Chart.Series[serie].Points.Count >= 2)
-                    {
-                        var first = (CandlePoint)Chart.Series[serie].Points.FirstOrDefault();
-                        var last  = (CandlePoint)Chart.Series[serie].Points.LastOrDefault();
-                        var dif   = last.InputX.Subtract(first.InputX);
-
-                        if(dif > SizeX)
-                        {
-
-                        }
-                    }
-
-
-
-
-
-
-                    var s = x;
-                    s.Subtract(SizeX);
-
-                    Chart.Series[serie].Points.Remove(Chart.Series[serie].Points[0]);
-                    Area.AxisX.Maximum = x.ToOADate();
-                    Area.AxisX.Minimum = s.ToOADate();
-
-                    //if (Ix > SizeX)
-                    //{
-                    //    Chart.Series[serie].Points.Remove(Chart.Series[serie].Points[0]);
-                    //    Area.AxisX.Maximum = x.ToOADate();
-                    //    Area.AxisX.Minimum = (Ix - SizeX);
-                    //}
-                    Ix++;
+                    UpdateRangeX(x, serie, step);
                 }
             }
             catch (Exception) { }
         }
 
 
-        public void Append(DateTime x, double y, int serie = 0, Color? color = null)
+        public void Append(DateTime x, double y, int serie = 0, TimeSpan? step = null, bool is_update = false, Color? color = null)
         {
             try
             {
@@ -86,26 +53,87 @@ namespace ProfitCapture.UI.Template
                 {
                     UpdateY(y);
 
-                    var point = new DataPoint(x.ToOADate(), y);
-
-                    if (color.HasValue)
+                    if (is_update)
                     {
-                        point.Color = color.Value;
+                        var pt = Chart.Series[serie].Points.LastOrDefault();
+                        if (pt != null)
+                        {
+                            var pp = (CandlePoint)pt;
+                            pp.XValue = x.ToOADate();
+                            pp.InputX = x;
+                            pp.YValues = new double[] { y };
+                        }
+                    }
+                    else
+                    {
+                        var dp = new CandlePoint() { InputX = x, XValue = x.ToOADate(), YValues = new double[] { y } };
+                        if (color.HasValue)
+                        {
+                            dp.Color = color.Value;
+                        }
+
+                        Chart.Series[serie].Points.Add(dp);
                     }
 
-                    Chart.Series[serie].Points.Add(point);
-
-                    if (Ix > SizeX)
-                    {
-                        Chart.Series[serie].Points.Remove(Chart.Series[serie].Points[0]);
-
-                        Area.AxisX.Maximum = x.ToOADate();
-                        Area.AxisX.Minimum = (Ix - SizeX);
-                    }
-                    Ix++;
+                    UpdateRangeX(x, serie, step);
                 }
             }
             catch (Exception) { }
+        }
+
+
+        public void UpdateRangeX(DateTime x, int serie, TimeSpan? step)
+        {
+            if (Chart.Series[serie].Points.Count >= 2)
+            {
+                var first = (CandlePoint)Chart.Series[serie].Points.FirstOrDefault();
+                var last  = (CandlePoint)Chart.Series[serie].Points.LastOrDefault();
+                var dif   = last.InputX.Subtract(first.InputX);
+
+                if (dif > SizeX)
+                {
+                    // Plota deslocando
+                    var a = x.Subtract(SizeX);
+
+                    if(step.HasValue)
+                    {
+                        a = a.Subtract(step.Value);
+                    }
+
+                    Area.AxisX.Minimum = a.ToOADate();
+                    Area.AxisX.Maximum = x.ToOADate();
+                }
+                else
+                {
+                    // Plota ate fim da tela
+                    var a = first.InputX;
+                    if (step.HasValue)
+                    {
+                        a = a.Subtract(step.Value);
+                    }
+                    Area.AxisX.Minimum = a.ToOADate();
+
+                    var m = first.InputX.Add(SizeX);
+                    Area.AxisX.Maximum = m.ToOADate();
+                }
+            }
+            else
+            {
+                var first = (CandlePoint)Chart.Series[serie].Points.FirstOrDefault();
+                if (first != null)
+                {
+                    // Plota ate fim da tela
+                    var a = first.InputX;
+                    if (step.HasValue)
+                    {
+                        a = a.Subtract(step.Value);
+                    }
+                    Area.AxisX.Minimum = a.ToOADate();
+
+                    var m = first.InputX.Add(SizeX);
+                    Area.AxisX.Maximum = m.ToOADate();
+                }
+            }
         }
 
 
@@ -136,43 +164,19 @@ namespace ProfitCapture.UI.Template
 
         public void TestData()
         {
-            var dados = new (int Data, double Abertura, double Maxima, double Minima, double Fechamento)[]
-            {
-                (1,  100, 110, 90,  105),
-                (5,  105, 120, 100, 115),
-                (10, 115, 125, 110, 120),
-                (15, 120, 130, 115, 125),
-                (20, 135, 140, 120, 125),
-            };
+            var dt = DateTime.Now;
+            var b = dt.AddMinutes(1);
 
-            foreach (var dado in dados)
-            {
-                DataPoint dp = new DataPoint
-                {
-                    XValue  = dado.Data,//.ToOADate(),
-                    YValues = new double[] { dado.Maxima, dado.Minima, dado.Abertura, dado.Fechamento }
-                };
+            var step = new TimeSpan(0, 1, 0);
 
-                Append(dp);
-
-                Serie.Points.Add(dp);
-            }
+            Append(dt.AddMinutes(1), 82,  94,  80,  100, step);
+            Append(dt.AddMinutes(2), 105, 106, 100, 110, step);
+            Append(dt.AddMinutes(3), 106, 119, 100, 120, step);
+            Append(dt.AddMinutes(4), 120, 121, 119, 125, step);
+            Append(dt.AddMinutes(5), 125, 128, 120, 130, step);
+            Append(dt.AddMinutes(6), 116, 114, 110, 120, step);
         }
 
-
-        //public void SetSizeX(double x, int serie)
-        //{
-        //    SizeX = x;
-        //    Ix    = 0;
-
-        //    if(serie >= 0 && serie < Chart.Series.Count)
-        //    {
-        //        Chart.Series[serie].Points.Clear();
-        //    }
-
-        //    Chart.ChartAreas[0].AxisX.Maximum = SizeX;
-        //    Chart.ChartAreas[0].AxisX.Minimum = Ix;
-        //}
 
         public void AddSerie(string name, SeriesChartType type, Color? color = null)
         {
@@ -187,7 +191,7 @@ namespace ProfitCapture.UI.Template
                 // Configuração do estilo de vela
                 s["OpenCloseStyle"] = "Triangle"; // Forma dos marcadores de abertura/fechamento
                 s["ShowOpenClose"]  = "Both"; // Mostra abertura e fechamento
-                s["PointWidth"]     = "0.1"; // Largura das velas
+                s["PointWidth"]     = "0.8"; // Largura das velas
 
                 // Cores de alta e baixa
                 s["PriceUpColor"]   = "#60FFBB"; // Alta
@@ -213,7 +217,7 @@ namespace ProfitCapture.UI.Template
 
         public void Init()
         {
-            SizeX = new TimeSpan(3, 0, 0);
+            SizeX = new TimeSpan(1, 0, 0);
 
             Chart = new Chart() { BackColor = Color.FromArgb(70,70,80), Dock = DockStyle.Fill };
             Controls.Add(Chart);
@@ -222,17 +226,18 @@ namespace ProfitCapture.UI.Template
             Area.Name = "CandleArea";
             Chart.ChartAreas.Add(Area);
 
-            Area.Position = new ElementPosition(0, 1, 100, 100);
+            Area.Position = new ElementPosition(0, 1, 101, 100);
 
             // Configuração do eixo X
             Area.AxisX.Interval                 = 1;
+            Area.AxisX.IntervalType             = DateTimeIntervalType.Minutes;  
             Area.AxisX.MajorGrid.LineColor      = System.Drawing.Color.LightGray;
-            Area.AxisX.Maximum                  = SizeX;
             Area.AxisX.LineWidth                = 0;
             Area.AxisX.MajorGrid.Enabled        = false; // Remove linhas principais
             Area.AxisX.MinorGrid.Enabled        = false; // Remove linhas secundárias
-            Area.AxisX2.LineWidth               = 0;
-            Area.AxisX.LabelStyle.Format        = "HH:mm:ss";
+            //Area.AxisX2.LineWidth               = 0;
+            Area.AxisX.LabelStyle.Format        = "HH:mm";
+            Area.AxisX.LabelStyle.ForeColor     = Color.FromArgb(160, 160, 160);
 
             // Alinha os valores do eixo Y à esquerda
             Area.AxisY.Enabled                  = AxisEnabled.False;
@@ -261,7 +266,6 @@ namespace ProfitCapture.UI.Template
 
         private ChartArea Area;
         private TimeSpan SizeX;
-        private long Ix;
         private Chart Chart;
 
 

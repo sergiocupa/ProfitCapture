@@ -168,8 +168,7 @@ namespace ProfitCapture.UI
 
         public void PlotCandle(AssetQuoteTimelinePeriod candle, bool add)
         {
-            // usar chart para plotar
-            // se ADD == true, entao inserir point na serie, senao atualizar indicadores, min, max, value, etc...
+            AssetChart.Append(candle.Time, (double)candle.Open, (double)candle.Close, (double)candle.Min, (double)candle.Max, candle.Duration, !add);
         }
 
 

@@ -19,8 +19,8 @@ namespace ProfitCapture.Parsers
                 foreach (var dir in dirs)
                 {
                     var quote = new AssetQuote();
-                    quote.Metadata.Name = Path.GetDirectoryName(dir);
-                    quote.Local = dir;
+                    quote.Metadata.Name  = Path.GetFileName(dir);
+                    quote.Metadata.Local = Path.GetDirectoryName(dir);
 
                     var files = Directory.GetFiles(dir);
                     foreach (var file in files)

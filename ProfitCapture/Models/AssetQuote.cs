@@ -8,9 +8,6 @@ namespace ProfitCapture.Models
 
         public string Rubric { get { return Metadata != null ? Metadata.Name : ""; } }
 
-
-        public string Local;
-
         public AssetGrid Metadata;
         public List<AssetQuoteTimeline> Timelines;
 
@@ -23,11 +20,13 @@ namespace ProfitCapture.Models
 
     public class AssetQuoteTimeline
     {
-        public DateTime Date;
-        public TimeSpan SelectedDuration;
-        public List<AssetQuoteTimelinePoint> Points;
+        public DateTime Date { get; set; }
+        public TimeSpan SelectedDuration { get; set; }
+        public string Local { get; set; }
+
+        public List<AssetQuoteTimelinePoint>  Points;
         public List<AssetQuoteTimelinePeriod> Periods;
-        public string Local;
+       
 
         public AssetQuoteTimeline()
         {

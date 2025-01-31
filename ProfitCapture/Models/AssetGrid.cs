@@ -8,6 +8,8 @@
         public string Value { get; set; }
         public ulong Count { get; set; }
 
+        public string Local { get; set; }
+
 
         public override string ToString()
         {

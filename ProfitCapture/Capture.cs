@@ -61,7 +61,7 @@ namespace ProfitCapture
 
                     if(all.Count == av)
                     {
-                        var nv = all.Select(s => new AssetGrid() { Asset = s.Asset, Name = s.Name, Item = s.Item, Value = s.Value }).ToList();
+                        var nv = all.Select(s => new AssetGrid() { Asset = s.Asset, Name = s.Name, Item = s.Item, Value = s.Value, Local = Setting.CaptureLocation }).ToList();
                         all.ForEach(s => s.Value = "");
                         LineQueue.Enqueue(LineReceived, nv);
                     }
@@ -112,7 +112,7 @@ namespace ProfitCapture
 
                 foreach (var a in f.Fields)
                 {
-                    var grid = new AssetGrid() { Asset = f.Name, Name = a.Name, Item = a.Item };
+                    var grid = new AssetGrid() { Asset = f.Name, Name = a.Name, Item = a.Item, Local = Setting.CaptureLocation };
                     Assets.Add(grid);
                     items.Add(a.Item);
                 }
