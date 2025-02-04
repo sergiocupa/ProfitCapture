@@ -62,6 +62,9 @@ namespace ProfitCapture.UI
         {
             SelectedTimeline = timeline;
 
+            TimelineMre.Set();
+            Running = false;
+
             Start();
         }
 
@@ -72,90 +75,145 @@ namespace ProfitCapture.UI
 
             TimelineThr = new Thread(() => 
             {
-                Running = true;
-
-                SelectedTimeline.Periods.Clear();
-
-                AssetQuoteTimelinePoint  previus   = null;
-                AssetQuoteTimelinePeriod candle    = null;
-                AssetQuoteTimelinePoint  stop_prev = null;
-                var stop_time_dur = new DateTime();
-
-                while (Running && SelectedPoint < SelectedTimeline.Points.Count)
+                try
                 {
-                    var point = SelectedTimeline.Points[SelectedPoint];
+                    Running = true;
 
-                    if(previus != null)
+                    // carregar points
+
+                    SelectedTimeline.Points = AssetQuoteParser.ReadAssembleTimelinePoints(SelectedTimeline, 0);
+                    var om = SelectedTimeline.Points.OrderBy(o => o.Time).ToList();
+                    var first = om.FirstOrDefault();
+                    var last = om.LastOrDefault();
+
+                    Principal.label5.Invoke(() =>
                     {
-                        if(point.Time >= stop_time_dur)
-                        {
-                            if(candle != null)
-                            {
-                                candle.Close = point.Last;
-                            }
+                        Principal.label5.Text = first != null ? first.Time.ToString("dd/MM/yyyy HH:mm:ss") : "###" + " < > " + last != null ? last.Time.ToString("dd/MM/yyyy HH:mm:ss") : "###";
+                    });
 
-                            // Criar vela
-                            candle = new AssetQuoteTimelinePeriod() 
-                            {
-                                Open = point.Last,
-                                Current = point.Last,
-                                Duration = SelectedTimeline.SelectedDuration, 
-                                Index = (ulong)SelectedTimeline.Periods.Count,
-                                Time = point.Time,
-                            };
-                            SelectedTimeline.Periods.Add(candle);
-                            PlotCandle(candle, true);
-                            stop_prev = null;
-                        }
+
+                    SelectedTimeline.Periods.Clear();
+
+                    AssetQuoteTimelinePoint previus = null;
+                    AssetQuoteTimelinePeriod candle = null;
+                    AssetQuoteTimelinePoint stop_prev = null;
+                    var stop_time_dur = new DateTime();
+
+                    var ord = SelectedTimeline.Points.OrderBy(o => o.Last);
+                    var min = ord.FirstOrDefault();
+                    var max = ord.LastOrDefault();
+                    var vmin = 0.0;
+                    var vmax = 0.0;
+                    if (ord.Count() > 1)
+                    {
+                        vmin = (double)min.Last;
+                        vmax = (double)max.Last;
                     }
-                    else
+                    else if (ord.Count() == 1)
                     {
+                        vmin = (double)max.Last;
+                        vmax = (double)max.Last;
+                    }
+                    AssetChart.ResetY(vmin, vmax);
+
+                    while (Running && SelectedPoint < SelectedTimeline.Points.Count)
+                    {
+                        var point = SelectedTimeline.Points[SelectedPoint];
+
+                        if (previus != null)
+                        {
+                            if (point.Time >= stop_time_dur)
+                            {
+                                if (candle != null)
+                                {
+                                    candle.Close = point.Last;
+                                }
+
+                                // Criar vela
+                                candle = new AssetQuoteTimelinePeriod()
+                                {
+                                    Open = point.Last,
+                                    Current = point.Last,
+                                    Duration = SelectedTimeline.SelectedDuration,
+                                    Index = (ulong)SelectedTimeline.Periods.Count,
+                                    Time = point.Time,
+                                    Min = point.Last,
+                                    Max = point.Last,
+                                    Close = point.Last
+                                };
+
+                                stop_time_dur = point.Time.Add(SelectedTimeline.SelectedDuration);
+
+                                SelectedTimeline.Periods.Add(candle);
+                                PlotCandle(candle, true);
+                                stop_prev = null;
+                            }
+                        }
+                        else
+                        {
+                            if (stop_prev == null)
+                            {
+                                // Criar vela
+                                candle = new AssetQuoteTimelinePeriod()
+                                {
+                                    Open = point.Last,
+                                    Current = point.Last,
+                                    Duration = SelectedTimeline.SelectedDuration,
+                                    Index = (ulong)SelectedTimeline.Periods.Count,
+                                    Time = point.Time,
+                                    Min = point.Last,
+                                    Max = point.Last,
+                                    Close = point.Last
+                                };
+
+                                stop_time_dur = point.Time.Add(SelectedTimeline.SelectedDuration);
+
+                                SelectedTimeline.Periods.Add(candle);
+                                PlotCandle(candle, true);
+                            }
+                        }
+
+                        // atualizar vela
+                        candle.Points.Add(point);
+                        candle.Close = point.Last;
+                        candle.Current = point.Last;
+
+                        if (candle.Current > candle.Max)
+                        {
+                            candle.Max = candle.Current;
+                        }
+                        if (candle.Current < candle.Min)
+                        {
+                            candle.Min = candle.Current;
+                        }
+
+                        Principal.label6.Invoke(() =>
+                        {
+                            Principal.label6.Text = "Count: " + SelectedPoint + " | Current: " + point.Last + " | Min: " + candle.Min + " | Max: " + candle.Max;
+                        });
+
+                        PlotCandle(candle, false);
+
+                        if (!ProcessEntireTimeline)
+                        {
+                            TimelineMre.Reset();
+                            TimelineMre.Wait(1);
+                        }
+
                         if (stop_prev == null)
                         {
-                            // Criar vela
-                            candle = new AssetQuoteTimelinePeriod()
-                            {
-                                Open = point.Last,
-                                Current = point.Last,
-                                Duration = SelectedTimeline.SelectedDuration,
-                                Index = (ulong)SelectedTimeline.Periods.Count,
-                                Time = point.Time,
-                            };
-                            SelectedTimeline.Periods.Add(candle);
-                            PlotCandle(candle, true);
+                            stop_prev = point;
                         }
+                        previus = point;
+                        SelectedPoint++;
                     }
-
-
-                    // atualizar vela
-                    candle.Points.Add(point);
-                    candle.Current = point.Last;
-
-                    if(candle.Current > candle.Max)
+                }
+                catch (Exception ex)
+                {
+                    Principal.Invoke(() =>
                     {
-                        candle.Max = candle.Current;
-                    }
-                    if (candle.Current < candle.Min)
-                    {
-                        candle.Min = candle.Current;
-                    }
-
-                    PlotCandle(candle, false);
-
-                    if (!ProcessEntireTimeline)
-                    {
-                        TimelineMre.Reset();
-                        TimelineMre.Wait(1000);
-                    }
-
-                    if(stop_prev == null)
-                    {
-                        stop_prev     = point;
-                        stop_time_dur = point.Time;
-                        stop_time_dur.Add(SelectedTimeline.SelectedDuration);
-                    }
-                    previus = point;
-                    SelectedPoint++;
+                        MessageBox.Show(ex.Message);
+                    });
                 }
             });
             TimelineThr.Start();
@@ -169,6 +227,12 @@ namespace ProfitCapture.UI
         public void PlotCandle(AssetQuoteTimelinePeriod candle, bool add)
         {
             AssetChart.Append(candle.Time, (double)candle.Open, (double)candle.Close, (double)candle.Min, (double)candle.Max, candle.Duration, !add);
+
+            //Console.WriteLine("Time: " + candle.Time.ToString("HH:mm:ss") + " | " +
+            //                  "Open: " + candle.Open + " | " +
+            //                  "Close: " + candle.Close + " | " +
+            //                  "Min: " + candle.Min + " | " +
+            //                  "Max: " + candle.Max);
         }
 
 
@@ -186,9 +250,13 @@ namespace ProfitCapture.UI
         DataGridView                    AssetGrid;
         DataGridView                    DatetimeGrid;
         CandleChart                     AssetChart;
+        Form1                           Principal;
+        LogConsole                      Log;
 
-        internal AssetViewer(Panel asset_panel, Panel timeline_panel, Panel chart_panel)
+        internal AssetViewer(Form1 principal, Panel asset_panel, Panel timeline_panel, Panel chart_panel)
         {
+            Principal = principal;
+
             TimelineMre = new ManualResetEventSlim();
 
             AssetGrid    = new DataGridView() { Dock = DockStyle.Fill };
@@ -210,6 +278,8 @@ namespace ProfitCapture.UI
             asset_panel.Controls.Add(AssetGrid);
             timeline_panel.Controls.Add(DatetimeGrid);
             chart_panel.Controls.Add(AssetChart);
+
+            //AssetChart.Demo();
 
             AssetGrid.CellContentClick += (object? sender, DataGridViewCellEventArgs e) =>
             {

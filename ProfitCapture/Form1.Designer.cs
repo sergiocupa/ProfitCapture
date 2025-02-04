@@ -42,6 +42,7 @@
             panel7 = new Panel();
             label3 = new Label();
             panel8 = new Panel();
+            label5 = new Label();
             numericUpDown1 = new NumericUpDown();
             button3 = new Button();
             label4 = new Label();
@@ -51,6 +52,7 @@
             panel1 = new Panel();
             button1 = new Button();
             panel2 = new Panel();
+            label6 = new Label();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
@@ -101,7 +103,7 @@
             tabControl1.Margin = new Padding(0);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(869, 549);
+            tabControl1.Size = new Size(1364, 549);
             tabControl1.TabIndex = 5;
             // 
             // tabPage1
@@ -110,7 +112,7 @@
             tabPage1.Location = new Point(4, 24);
             tabPage1.Margin = new Padding(0);
             tabPage1.Name = "tabPage1";
-            tabPage1.Size = new Size(861, 521);
+            tabPage1.Size = new Size(1356, 521);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "tabPage1";
             tabPage1.UseVisualStyleBackColor = true;
@@ -133,7 +135,7 @@
             tableLayoutPanel2.RowCount = 2;
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel2.Size = new Size(861, 521);
+            tableLayoutPanel2.Size = new Size(1356, 521);
             tableLayoutPanel2.TabIndex = 0;
             // 
             // panel5
@@ -142,7 +144,7 @@
             panel5.Location = new Point(240, 34);
             panel5.Margin = new Padding(0);
             panel5.Name = "panel5";
-            panel5.Size = new Size(621, 487);
+            panel5.Size = new Size(1116, 487);
             panel5.TabIndex = 2;
             // 
             // panel4
@@ -207,6 +209,8 @@
             // 
             // panel8
             // 
+            panel8.Controls.Add(label6);
+            panel8.Controls.Add(label5);
             panel8.Controls.Add(numericUpDown1);
             panel8.Controls.Add(button3);
             panel8.Controls.Add(label4);
@@ -215,8 +219,18 @@
             panel8.Location = new Point(240, 0);
             panel8.Margin = new Padding(0);
             panel8.Name = "panel8";
-            panel8.Size = new Size(621, 34);
+            panel8.Size = new Size(1116, 34);
             panel8.TabIndex = 5;
+            // 
+            // label5
+            // 
+            label5.Font = new Font("Segoe UI", 8F);
+            label5.ForeColor = SystemColors.Highlight;
+            label5.Location = new Point(480, 1);
+            label5.Name = "label5";
+            label5.Size = new Size(553, 15);
+            label5.TabIndex = 4;
+            label5.Text = "label5";
             // 
             // numericUpDown1
             // 
@@ -263,7 +277,7 @@
             tabPage2.Location = new Point(4, 24);
             tabPage2.Margin = new Padding(0);
             tabPage2.Name = "tabPage2";
-            tabPage2.Size = new Size(861, 521);
+            tabPage2.Size = new Size(1107, 521);
             tabPage2.TabIndex = 1;
             tabPage2.Text = "Captura";
             tabPage2.UseVisualStyleBackColor = true;
@@ -282,7 +296,7 @@
             tableLayoutPanel1.RowCount = 2;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 19.43128F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 80.56872F));
-            tableLayoutPanel1.Size = new Size(861, 521);
+            tableLayoutPanel1.Size = new Size(1107, 521);
             tableLayoutPanel1.TabIndex = 6;
             // 
             // panel1
@@ -295,7 +309,7 @@
             panel1.Location = new Point(0, 0);
             panel1.Margin = new Padding(0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(861, 101);
+            panel1.Size = new Size(1107, 101);
             panel1.TabIndex = 0;
             // 
             // button1
@@ -315,15 +329,25 @@
             panel2.Location = new Point(0, 101);
             panel2.Margin = new Padding(0);
             panel2.Name = "panel2";
-            panel2.Size = new Size(861, 420);
+            panel2.Size = new Size(1107, 420);
             panel2.TabIndex = 1;
+            // 
+            // label6
+            // 
+            label6.Font = new Font("Segoe UI", 8F);
+            label6.ForeColor = SystemColors.Highlight;
+            label6.Location = new Point(480, 17);
+            label6.Name = "label6";
+            label6.Size = new Size(553, 15);
+            label6.TabIndex = 5;
+            label6.Text = "label6";
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.White;
-            ClientSize = new Size(869, 549);
+            ClientSize = new Size(1364, 549);
             Controls.Add(tabControl1);
             Name = "Form1";
             Text = "Form1";
@@ -367,5 +391,7 @@
         private Label label4;
         private CheckBox checkBox1;
         private NumericUpDown numericUpDown1;
+        internal Label label5;
+        internal Label label6;
     }
 }

@@ -10,5 +10,8 @@
     <Compile Update="UI\Template\CandleChart.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Update="UI\Template\LogConsole.cs">
+      <SubType>Form</SubType>
+    </Compile>
   </ItemGroup>
 </Project>

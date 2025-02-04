@@ -8,7 +8,20 @@ namespace ProfitCapture.UI.Template
     public partial class CandleChart : UserControl
     {
 
+
         public void Append(DateTime x, double open, double close, double low, double high, TimeSpan? step = null, bool is_update = false, int serie = 0, Color? color = null)
+        {
+            if(InvokeRequired)
+            {
+                Invoke(() => { AppendInvoke(x, open, close, low, high, step, is_update, serie, color); });
+            }
+            else
+            {
+                AppendInvoke(x, open, close, low, high, step, is_update, serie, color);
+            }
+        }
+
+        private void AppendInvoke(DateTime x, double open, double close, double low, double high, TimeSpan? step, bool is_update, int serie, Color? color)
         {
             try
             {
@@ -21,10 +34,17 @@ namespace ProfitCapture.UI.Template
                         var pt = Chart.Series[serie].Points.LastOrDefault();
                         if(pt != null)
                         {
-                            var pp = (CandlePoint)pt;
-                            pp.XValue  = x.ToOADate();
-                            pp.InputX  = x;
-                            pp.YValues = new double[] { low, high, open, close };
+                            try
+                            {
+                                var pp = (CandlePoint)pt;
+                                pp.XValue = x.ToOADate();
+                                pp.InputX = x;
+                                pp.YValues = new double[] { low, high, open, close };
+                            }
+                            catch (Exception ex)
+                            {
+
+                            }
                         }
                     }
                     else
@@ -35,13 +55,23 @@ namespace ProfitCapture.UI.Template
                             dp.Color = color.Value;
                         }
 
-                        Chart.Series[serie].Points.Add(dp);
+                        try
+                        {
+                            Chart.Series[serie].Points.Add(dp);
+                        }
+                        catch (Exception ex)
+                        {
+
+                        }
                     }
 
                     UpdateRangeX(x, serie, step);
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex) 
+            { 
+                Console.Error.WriteLine(ex.ToString());
+            }
         }
 
 
@@ -78,7 +108,10 @@ namespace ProfitCapture.UI.Template
                     UpdateRangeX(x, serie, step);
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.ToString());
+            }
         }
 
 
@@ -137,32 +170,39 @@ namespace ProfitCapture.UI.Template
         }
 
 
+        public void ResetY(double min, double max)
+        {
+            Chart.ChartAreas[0].AxisY2.Minimum = min;
+            Chart.ChartAreas[0].AxisY2.Maximum = max;
+        }
+
+
         private void UpdateY(double value)
         {
-            if (value > Chart.ChartAreas[0].AxisY.Maximum)
+            if (value > Chart.ChartAreas[0].AxisY2.Maximum)
             {
-                Chart.ChartAreas[0].AxisY.Maximum = value;
+                Chart.ChartAreas[0].AxisY2.Maximum = value;
             }
-            if (value < Chart.ChartAreas[0].AxisY.Minimum)
+            if (value < Chart.ChartAreas[0].AxisY2.Minimum)
             {
-                Chart.ChartAreas[0].AxisY.Minimum = value;
+                Chart.ChartAreas[0].AxisY2.Minimum = value;
             }
         }
 
         private void UpdateY(double min, double max)
         {
-            if (max > Chart.ChartAreas[0].AxisY.Maximum)
+            if (max > Chart.ChartAreas[0].AxisY2.Maximum)
             {
-                Chart.ChartAreas[0].AxisY.Maximum = max;
+                Chart.ChartAreas[0].AxisY2.Maximum = max;
             }
-            if (min < Chart.ChartAreas[0].AxisY.Minimum)
+            if (min < Chart.ChartAreas[0].AxisY2.Minimum)
             {
-                Chart.ChartAreas[0].AxisY.Minimum = min;
+                Chart.ChartAreas[0].AxisY2.Minimum = min;
             }
         }
 
 
-        public void TestData()
+        public void Demo()
         {
             var dt = DateTime.Now;
             var b = dt.AddMinutes(1);
@@ -185,6 +225,7 @@ namespace ProfitCapture.UI.Template
             s.Name        = name;
             s.ChartType   = type;
             s.BorderWidth = 1;
+            s.YAxisType   = AxisType.Secondary;
 
             if (type == SeriesChartType.Candlestick)
             {
@@ -205,6 +246,85 @@ namespace ProfitCapture.UI.Template
             Chart.Series.Add(s);
         }
 
+
+        private void Chart_MouseWheel(object? sender, MouseEventArgs e)
+        {
+            try
+            {
+                Area.RecalculateAxesScale();
+
+                if (e.Delta > 0) // Zoom in (reduz intervalo)
+                {
+                    var dif = (Area.AxisY2.Maximum - Area.AxisY2.Minimum) / 6.0;
+
+                    double novoMin = Area.AxisY2.Minimum + dif;
+                    double novoMax = Area.AxisY2.Maximum - dif;
+
+                    if (novoMin < novoMax) 
+                    {
+                        Area.AxisY2.Minimum = novoMin;
+                        Area.AxisY2.Maximum = novoMax;
+                    }
+                }
+                else if (e.Delta < 0) // Zoom out (aumenta intervalo)
+                {
+                    var dif = (Area.AxisY2.Maximum - Area.AxisY2.Minimum) / 2.0;
+
+                    Area.AxisY2.Maximum += dif;
+                    Area.AxisY2.Minimum -= dif;
+                }
+
+
+                Area.RecalculateAxesScale();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.ToString());
+            }
+        }
+
+        private void Chart_MouseMove(object? sender, MouseEventArgs e)
+        {
+            if (IsDragging)
+            {
+                // Calcula a faixa atual do eixo Y2
+                double rangeY = Area.AxisY2.Maximum - Area.AxisY2.Minimum;
+                double rangeX = Area.AxisX.Maximum - Area.AxisX.Minimum;
+
+                // Ajusta a sensibilidade conforme a escala do eixo
+                double moveFactorY = (e.Y - LastMouseY) * (rangeY / 500.0);
+                double moveFactorX = (e.X - LastMouseX) * (rangeX / 500.0);
+
+                // Atualiza os valores garantindo que mínimo continue menor que máximo
+                Area.AxisY2.Minimum += moveFactorY;
+                Area.AxisY2.Maximum += moveFactorY;
+                Area.AxisX.Minimum  += moveFactorX;
+                Area.AxisX.Maximum  += moveFactorX;
+
+                LastMouseY = e.Y;
+                LastMouseX = e.X;
+            }
+        }
+
+        private void Chart_MouseDown(object? sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                IsDragging = true;
+                LastMouseY = e.Y;
+            }
+        }
+
+        private void Chart_MouseUp(object? sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                IsDragging = false;
+            }
+        }
+
+
+
         public void InitAxisX()
         {
             var d1 = DateTime.Now;
@@ -217,10 +337,15 @@ namespace ProfitCapture.UI.Template
 
         public void Init()
         {
-            SizeX = new TimeSpan(1, 0, 0);
+            SizeX = new TimeSpan(3, 0, 0);
 
             Chart = new Chart() { BackColor = Color.FromArgb(70,70,80), Dock = DockStyle.Fill };
             Controls.Add(Chart);
+
+            Chart.MouseWheel += Chart_MouseWheel;
+            Chart.MouseUp += Chart_MouseUp;
+            Chart.MouseDown += Chart_MouseDown;
+            Chart.MouseMove += Chart_MouseMove;
 
             Area = new ChartArea() { BackColor = Color.FromArgb(70, 70, 80) };
             Area.Name = "CandleArea";
@@ -257,6 +382,9 @@ namespace ProfitCapture.UI.Template
             Area.AxisY2.LabelStyle.Font         = new Font("Segoe UI", 8);
             Area.AxisY2.MajorGrid.Enabled       = true; // Remove as linhas de grade do eixo Y2
             Area.AxisY2.MajorTickMark.Enabled   = false; // Habilita as marcas de tique
+            Area.AxisY2.IsLogarithmic           = false;
+            Area.AxisY2.IsStartedFromZero       = false;
+            Area.AxisY2.IsMarginVisible         = false;
 
             AddSerie("Candles", SeriesChartType.Candlestick);
 
@@ -267,6 +395,9 @@ namespace ProfitCapture.UI.Template
         private ChartArea Area;
         private TimeSpan SizeX;
         private Chart Chart;
+        private double LastMouseY;
+        private double LastMouseX;
+        private bool IsDragging = false;
 
 
         public CandleChart()

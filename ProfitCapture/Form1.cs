@@ -91,7 +91,7 @@ namespace ProfitCapture
 
             FormClosing += Form1_FormClosing;
 
-            AssetView = new AssetViewer(panel3, panel4, panel5);
+            AssetView = new AssetViewer(this, panel3, panel4, panel5);
 
             AssetView.ViewAssetList();
         }
