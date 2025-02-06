@@ -9,19 +9,19 @@ namespace ProfitCapture.UI.Template
     {
 
 
-        public void Append(DateTime x, double open, double close, double low, double high, TimeSpan? step = null, bool is_update = false, int serie = 0, Color? color = null)
+        public void Append(DateTime x, double open, double close, double low, double high, bool is_update = false, int serie = 0, Color? color = null)
         {
             if(InvokeRequired)
             {
-                Invoke(() => { AppendInvoke(x, open, close, low, high, step, is_update, serie, color); });
+                Invoke(() => { AppendInvoke(x, open, close, low, high, is_update, serie, color); });
             }
             else
             {
-                AppendInvoke(x, open, close, low, high, step, is_update, serie, color);
+                AppendInvoke(x, open, close, low, high, is_update, serie, color);
             }
         }
 
-        private void AppendInvoke(DateTime x, double open, double close, double low, double high, TimeSpan? step, bool is_update, int serie, Color? color)
+        private void AppendInvoke(DateTime x, double open, double close, double low, double high, bool is_update, int serie, Color? color)
         {
             try
             {
@@ -65,7 +65,7 @@ namespace ProfitCapture.UI.Template
                         }
                     }
 
-                    UpdateRangeX(x, serie, step);
+                    UpdateRangeX(x, serie);
                 }
             }
             catch (Exception ex) 
@@ -75,7 +75,7 @@ namespace ProfitCapture.UI.Template
         }
 
 
-        public void Append(DateTime x, double y, int serie = 0, TimeSpan? step = null, bool is_update = false, Color? color = null)
+        public void Append(DateTime x, double y, int serie = 0, bool is_update = false, Color? color = null)
         {
             try
             {
@@ -105,7 +105,7 @@ namespace ProfitCapture.UI.Template
                         Chart.Series[serie].Points.Add(dp);
                     }
 
-                    UpdateRangeX(x, serie, step);
+                    UpdateRangeX(x, serie);
                 }
             }
             catch (Exception ex)
@@ -115,7 +115,7 @@ namespace ProfitCapture.UI.Template
         }
 
 
-        public void UpdateRangeX(DateTime x, int serie, TimeSpan? step)
+        public void UpdateRangeX(DateTime x, int serie)
         {
             if (Chart.Series[serie].Points.Count >= 2)
             {
@@ -128,26 +128,26 @@ namespace ProfitCapture.UI.Template
                     // Plota deslocando
                     var a = x.Subtract(SizeX);
 
-                    if(step.HasValue)
+                    if(Step.HasValue)
                     {
-                        a = a.Subtract(step.Value);
+                        a = a.Subtract(Step.Value);
                     }
 
-                    Area.AxisX.Minimum = a.ToOADate();
-                    Area.AxisX.Maximum = x.ToOADate();
+                    Area.AxisX.Minimum = a.Add(OffsetX).ToOADate();
+                    Area.AxisX.Maximum = x.Add(OffsetX).ToOADate();
                 }
                 else
                 {
                     // Plota ate fim da tela
                     var a = first.InputX;
-                    if (step.HasValue)
+                    if (Step.HasValue)
                     {
-                        a = a.Subtract(step.Value);
+                        a = a.Subtract(Step.Value);
                     }
-                    Area.AxisX.Minimum = a.ToOADate();
+                    Area.AxisX.Minimum = a.Add(OffsetX).ToOADate();
 
                     var m = first.InputX.Add(SizeX);
-                    Area.AxisX.Maximum = m.ToOADate();
+                    Area.AxisX.Maximum = m.Add(OffsetX).ToOADate();
                 }
             }
             else
@@ -157,16 +157,22 @@ namespace ProfitCapture.UI.Template
                 {
                     // Plota ate fim da tela
                     var a = first.InputX;
-                    if (step.HasValue)
+                    if (Step.HasValue)
                     {
-                        a = a.Subtract(step.Value);
+                        a = a.Subtract(Step.Value);
                     }
-                    Area.AxisX.Minimum = a.ToOADate();
+                    Area.AxisX.Minimum = a.Add(OffsetX).ToOADate();
 
-                    var m = first.InputX.Add(SizeX);
-                    Area.AxisX.Maximum = m.ToOADate();
+                    var m = first.InputX.Add(SizeX).Add(OffsetX);
+                    Area.AxisX.Maximum = m.Add(OffsetX).ToOADate();
                 }
             }
+        }
+
+
+        public void SetStep(TimeSpan? step)
+        {
+            Step = step;
         }
 
 
@@ -207,14 +213,14 @@ namespace ProfitCapture.UI.Template
             var dt = DateTime.Now;
             var b = dt.AddMinutes(1);
 
-            var step = new TimeSpan(0, 1, 0);
+            SetStep(new TimeSpan(0, 1, 0));
 
-            Append(dt.AddMinutes(1), 82,  94,  80,  100, step);
-            Append(dt.AddMinutes(2), 105, 106, 100, 110, step);
-            Append(dt.AddMinutes(3), 106, 119, 100, 120, step);
-            Append(dt.AddMinutes(4), 120, 121, 119, 125, step);
-            Append(dt.AddMinutes(5), 125, 128, 120, 130, step);
-            Append(dt.AddMinutes(6), 116, 114, 110, 120, step);
+            Append(dt.AddMinutes(1), 82,  94,  80,  100);
+            Append(dt.AddMinutes(2), 105, 106, 100, 110);
+            Append(dt.AddMinutes(3), 106, 119, 100, 120);
+            Append(dt.AddMinutes(4), 120, 121, 119, 125);
+            Append(dt.AddMinutes(5), 125, 128, 120, 130);
+            Append(dt.AddMinutes(6), 116, 114, 110, 120);
         }
 
 
@@ -253,27 +259,63 @@ namespace ProfitCapture.UI.Template
             {
                 Area.RecalculateAxesScale();
 
-                if (e.Delta > 0) // Zoom in (reduz intervalo)
+
+                if ((Control.ModifierKeys & Keys.Control) == Keys.Control)// Eixo X
                 {
-                    var dif = (Area.AxisY2.Maximum - Area.AxisY2.Minimum) / 6.0;
+                    DateTime minX = DateTime.FromOADate(Area.AxisX.Minimum);
+                    DateTime maxX = DateTime.FromOADate(Area.AxisX.Maximum);
 
-                    double novoMin = Area.AxisY2.Minimum + dif;
-                    double novoMax = Area.AxisY2.Maximum - dif;
+                    TimeSpan difX = maxX - minX; // Calcula o intervalo de tempo atual
 
-                    if (novoMin < novoMax) 
+                    if (e.Delta > 0) // Zoom in no eixo X (reduz intervalo)
                     {
-                        Area.AxisY2.Minimum = novoMin;
-                        Area.AxisY2.Maximum = novoMax;
+                        DateTime novoMinX = minX.AddMilliseconds(difX.TotalMilliseconds / 6.0);
+                        DateTime novoMaxX = maxX.AddMilliseconds(-difX.TotalMilliseconds / 6.0);
+
+                        if (novoMinX < novoMaxX)
+                        {
+                            SizeX = novoMaxX.Subtract(novoMinX);
+
+                            // Converte de volta para OADate antes de atribuir
+                            Area.AxisX.Minimum = novoMinX.ToOADate();
+                            Area.AxisX.Maximum = novoMaxX.ToOADate();
+                        }
+                    }
+                    else if (e.Delta < 0)
+                    {
+                        DateTime novoMinX = minX.AddMilliseconds(-difX.TotalMilliseconds / 2.0);
+                        DateTime novoMaxX = maxX.AddMilliseconds(difX.TotalMilliseconds / 2.0);
+
+                        SizeX = novoMaxX.Subtract(novoMinX);
+
+                        // Converte de volta para OADate antes de atribuir
+                        Area.AxisX.Minimum = novoMinX.ToOADate();
+                        Area.AxisX.Maximum = novoMaxX.ToOADate();
                     }
                 }
-                else if (e.Delta < 0) // Zoom out (aumenta intervalo)
+                else// Eixo Y
                 {
-                    var dif = (Area.AxisY2.Maximum - Area.AxisY2.Minimum) / 2.0;
+                    if (e.Delta > 0) // Zoom in (reduz intervalo)
+                    {
+                        var dif = (Area.AxisY2.Maximum - Area.AxisY2.Minimum) / 6.0;
 
-                    Area.AxisY2.Maximum += dif;
-                    Area.AxisY2.Minimum -= dif;
+                        double novoMin = Area.AxisY2.Minimum + dif;
+                        double novoMax = Area.AxisY2.Maximum - dif;
+
+                        if (novoMin < novoMax)
+                        {
+                            Area.AxisY2.Minimum = novoMin;
+                            Area.AxisY2.Maximum = novoMax;
+                        }
+                    }
+                    else if (e.Delta < 0) // Zoom out (aumenta intervalo)
+                    {
+                        var dif = (Area.AxisY2.Maximum - Area.AxisY2.Minimum) / 2.0;
+
+                        Area.AxisY2.Maximum += dif;
+                        Area.AxisY2.Minimum -= dif;
+                    }
                 }
-
 
                 Area.RecalculateAxesScale();
             }
@@ -288,20 +330,32 @@ namespace ProfitCapture.UI.Template
             if (IsDragging)
             {
                 // Calcula a faixa atual do eixo Y2
-                double rangeY = Area.AxisY2.Maximum - Area.AxisY2.Minimum;
-                double rangeX = Area.AxisX.Maximum - Area.AxisX.Minimum;
-
-                // Ajusta a sensibilidade conforme a escala do eixo
+                double rangeY      = Area.AxisY2.Maximum - Area.AxisY2.Minimum;
                 double moveFactorY = (e.Y - LastMouseY) * (rangeY / 500.0);
-                double moveFactorX = (e.X - LastMouseX) * (rangeX / 500.0);
-
-                // Atualiza os valores garantindo que mínimo continue menor que máximo
                 Area.AxisY2.Minimum += moveFactorY;
                 Area.AxisY2.Maximum += moveFactorY;
-                Area.AxisX.Minimum  += moveFactorX;
-                Area.AxisX.Maximum  += moveFactorX;
-
                 LastMouseY = e.Y;
+
+
+
+                // Converte valores do eixo X para DateTime
+                DateTime minX = DateTime.FromOADate(Area.AxisX.Minimum);
+                DateTime maxX = DateTime.FromOADate(Area.AxisX.Maximum);
+                TimeSpan rangeX = maxX - minX;
+
+                // Ajusta a sensibilidade conforme a escala dos eixos
+                TimeSpan moveFactorX = TimeSpan.FromMilliseconds((e.X - LastMouseX) * (rangeX.TotalMilliseconds / 500.0));
+
+                DateTime novoMinX = minX.Add(moveFactorX);
+                DateTime novoMaxX = maxX.Add(moveFactorX);
+
+                // Aculular offset
+                ...
+                OffsetX = novoMinX.Subtract(minX);
+                Console.WriteLine("Offset -> " + OffsetX);
+
+                Area.AxisX.Minimum = novoMinX.ToOADate();
+                Area.AxisX.Maximum = novoMaxX.ToOADate();
                 LastMouseX = e.X;
             }
         }
@@ -337,7 +391,8 @@ namespace ProfitCapture.UI.Template
 
         public void Init()
         {
-            SizeX = new TimeSpan(3, 0, 0);
+            SizeX   = new TimeSpan(1, 0, 0);
+            OffsetX = new TimeSpan(0);
 
             Chart = new Chart() { BackColor = Color.FromArgb(70,70,80), Dock = DockStyle.Fill };
             Controls.Add(Chart);
@@ -392,8 +447,10 @@ namespace ProfitCapture.UI.Template
         }
 
 
+        private TimeSpan? Step;
         private ChartArea Area;
         private TimeSpan SizeX;
+        private TimeSpan OffsetX;
         private Chart Chart;
         private double LastMouseY;
         private double LastMouseX;

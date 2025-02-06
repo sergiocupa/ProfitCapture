@@ -226,7 +226,7 @@ namespace ProfitCapture.UI
 
         public void PlotCandle(AssetQuoteTimelinePeriod candle, bool add)
         {
-            AssetChart.Append(candle.Time, (double)candle.Open, (double)candle.Close, (double)candle.Min, (double)candle.Max, candle.Duration, !add);
+            AssetChart.Append(candle.Time, (double)candle.Open, (double)candle.Close, (double)candle.Min, (double)candle.Max, !add);
 
             //Console.WriteLine("Time: " + candle.Time.ToString("HH:mm:ss") + " | " +
             //                  "Open: " + candle.Open + " | " +
