@@ -81,7 +81,7 @@ namespace ProfitCapture.UI.Template
             {
                 if (serie >= 0 && serie < Chart.Series.Count)
                 {
-                    UpdateY(y);
+                    //UpdateY(y);
 
                     if (is_update)
                     {
@@ -89,7 +89,7 @@ namespace ProfitCapture.UI.Template
                         if (pt != null)
                         {
                             var pp = (CandlePoint)pt;
-                            pp.XValue = x.ToOADate();
+                            //pp.XValue = x.ToOADate();
                             pp.InputX = x;
                             pp.YValues = new double[] { y };
                         }
@@ -105,7 +105,7 @@ namespace ProfitCapture.UI.Template
                         Chart.Series[serie].Points.Add(dp);
                     }
 
-                    UpdateRangeX(x, serie);
+                    //UpdateRangeX(x, serie);
                 }
             }
             catch (Exception ex)
@@ -224,7 +224,7 @@ namespace ProfitCapture.UI.Template
         }
 
 
-        public void AddSerie(string name, SeriesChartType type, Color? color = null)
+        public void AddSerie(string name, SeriesChartType type = SeriesChartType.Line, Color? color = null)
         {
             var s = new Series();
 
@@ -233,10 +233,13 @@ namespace ProfitCapture.UI.Template
             s.BorderWidth = 1;
             s.YAxisType   = AxisType.Secondary;
 
+            s.IsXValueIndexed = false;
+
             if (type == SeriesChartType.Candlestick)
             {
                 // Configuração do estilo de vela
-                s["OpenCloseStyle"] = "Triangle"; // Forma dos marcadores de abertura/fechamento
+                //s["OpenCloseStyle"] = "Triangle"; // Forma dos marcadores de abertura/fechamento
+                s["OpenCloseStyle"] = "Candlestick"; // Forma dos marcadores de abertura/fechamento
                 s["ShowOpenClose"]  = "Both"; // Mostra abertura e fechamento
                 s["PointWidth"]     = "0.8"; // Largura das velas
 
@@ -343,16 +346,16 @@ namespace ProfitCapture.UI.Template
                 DateTime maxX = DateTime.FromOADate(Area.AxisX.Maximum);
                 TimeSpan rangeX = maxX - minX;
 
+                if(!Step.HasValue) Step = new TimeSpan(0, 1, 0);
+
                 // Ajusta a sensibilidade conforme a escala dos eixos
-                TimeSpan moveFactorX = TimeSpan.FromMilliseconds((e.X - LastMouseX) * (rangeX.TotalMilliseconds / 500.0));
+                TimeSpan moveFactorX = TimeSpan.FromMilliseconds((e.X - LastMouseX) * (Step.Value.TotalMilliseconds / 10.0));
 
                 DateTime novoMinX = minX.Add(moveFactorX);
                 DateTime novoMaxX = maxX.Add(moveFactorX);
 
-                // Aculular offset
-                ...
-                OffsetX = novoMinX.Subtract(minX);
-                Console.WriteLine("Offset -> " + OffsetX);
+                OffsetX -= moveFactorX;
+                //Console.WriteLine("novoMinX: "+ novoMinX + " | Offset: " + OffsetX);
 
                 Area.AxisX.Minimum = novoMinX.ToOADate();
                 Area.AxisX.Maximum = novoMaxX.ToOADate();
@@ -398,9 +401,9 @@ namespace ProfitCapture.UI.Template
             Controls.Add(Chart);
 
             Chart.MouseWheel += Chart_MouseWheel;
-            Chart.MouseUp += Chart_MouseUp;
-            Chart.MouseDown += Chart_MouseDown;
-            Chart.MouseMove += Chart_MouseMove;
+            Chart.MouseUp    += Chart_MouseUp;
+            Chart.MouseDown  += Chart_MouseDown;
+            Chart.MouseMove  += Chart_MouseMove;
 
             Area = new ChartArea() { BackColor = Color.FromArgb(70, 70, 80) };
             Area.Name = "CandleArea";
@@ -418,6 +421,8 @@ namespace ProfitCapture.UI.Template
             //Area.AxisX2.LineWidth               = 0;
             Area.AxisX.LabelStyle.Format        = "HH:mm";
             Area.AxisX.LabelStyle.ForeColor     = Color.FromArgb(160, 160, 160);
+
+            Area.AxisX.IsMarginVisible = false;
 
             // Alinha os valores do eixo Y à esquerda
             Area.AxisY.Enabled                  = AxisEnabled.False;

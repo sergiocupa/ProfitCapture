@@ -1,6 +1,7 @@
 ﻿using ProfitCapture.Models;
 using ProfitCapture.Parsers;
 using ProfitCapture.UI.Template;
+using ProfitCapture.Utils;
 using System.ComponentModel;
 
 
@@ -146,6 +147,7 @@ namespace ProfitCapture.UI
 
                                 SelectedTimeline.Periods.Add(candle);
                                 PlotCandle(candle, true);
+                                PlotLine(point.Time, point.Last, true);
                                 stop_prev = null;
                             }
                         }
@@ -170,6 +172,7 @@ namespace ProfitCapture.UI
 
                                 SelectedTimeline.Periods.Add(candle);
                                 PlotCandle(candle, true);
+                                PlotLine(point.Time, point.Last, true);
                             }
                         }
 
@@ -193,6 +196,7 @@ namespace ProfitCapture.UI
                         });
 
                         PlotCandle(candle, false);
+                        PlotLine(point.Time, point.Last, false);
 
                         if (!ProcessEntireTimeline)
                         {
@@ -224,6 +228,19 @@ namespace ProfitCapture.UI
 
         }
 
+
+        public void PlotLine(DateTime x, decimal y, bool add)
+        {
+            if(!AcumuladorNext)
+            {
+                AcumuladorNext = true;
+                Acumulador = y;
+            }
+
+            Acumulador = MathFunc.Integrate(y, Acumulador, 200, 1);
+            AssetChart.Append(x, (double)Acumulador, 1, !add);
+        }
+
         public void PlotCandle(AssetQuoteTimelinePeriod candle, bool add)
         {
             AssetChart.Append(candle.Time, (double)candle.Open, (double)candle.Close, (double)candle.Min, (double)candle.Max, !add);
@@ -253,6 +270,9 @@ namespace ProfitCapture.UI
         Form1                           Principal;
         LogConsole                      Log;
 
+        decimal Acumulador;
+        bool AcumuladorNext;
+
         internal AssetViewer(Form1 principal, Panel asset_panel, Panel timeline_panel, Panel chart_panel)
         {
             Principal = principal;
@@ -262,6 +282,8 @@ namespace ProfitCapture.UI
             AssetGrid    = new DataGridView() { Dock = DockStyle.Fill };
             DatetimeGrid = new DataGridView() { Dock = DockStyle.Fill };
             AssetChart   = new CandleChart()  { Dock = DockStyle.Fill };
+
+            AssetChart.AddSerie("Media");
 
             DataGridViewTemplate.EsquemaBrancoLinhaInferior(AssetGrid);
             DataGridViewTemplate.EsquemaBrancoLinhaInferior(DatetimeGrid);
