@@ -63,11 +63,36 @@ namespace ProfitCapture.UI
         {
             SelectedTimeline = timeline;
 
+            if(Principal.CandlePeriods.SelectedIndex >= 0)
+            {
+                var per = (CandlePeriod)Principal.CandlePeriods.Items[Principal.CandlePeriods.SelectedIndex];
+                SelectedTimeline.SelectedDuration = per.Period;
+            }
+
             TimelineMre.Set();
             Running = false;
 
             Start();
         }
+
+        private void CandlePeriods_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if(SelectedTimeline != null)
+            {
+                if (Principal.CandlePeriods.SelectedIndex >= 0)
+                {
+                    var per = (CandlePeriod)Principal.CandlePeriods.Items[Principal.CandlePeriods.SelectedIndex];
+                    SelectedTimeline.SelectedDuration = per.Period;
+                }
+
+                if (Running)
+                {
+                    Stop();
+                    Start();
+                }
+            }
+        }
+
 
         public void Start()
         {
@@ -120,7 +145,10 @@ namespace ProfitCapture.UI
                     while (Running && SelectedPoint < SelectedTimeline.Points.Count)
                     {
                         var point = SelectedTimeline.Points[SelectedPoint];
+                        var ti = CandlePeriod.RoundToNearestInterval(point.Time, SelectedTimeline.SelectedDuration);
 
+                        // Usar exemplo do chatgpt
+                        bool newc = false;
                         if (previus != null)
                         {
                             if (point.Time >= stop_time_dur)
@@ -137,18 +165,22 @@ namespace ProfitCapture.UI
                                     Current = point.Last,
                                     Duration = SelectedTimeline.SelectedDuration,
                                     Index = (ulong)SelectedTimeline.Periods.Count,
-                                    Time = point.Time,
+                                    Time = ti,
                                     Min = point.Last,
                                     Max = point.Last,
                                     Close = point.Last
                                 };
 
-                                stop_time_dur = point.Time.Add(SelectedTimeline.SelectedDuration);
+                                stop_time_dur = CandlePeriod.AddInterval(point.Time, SelectedTimeline.SelectedDuration);
 
                                 SelectedTimeline.Periods.Add(candle);
                                 PlotCandle(candle, true);
-                                PlotLine(point.Time, point.Last, true);
+
+
+                                //var media1 = MediaMovel(9, SelectedTimeline.Periods);
+                                //PlotLine(ti, media1, true);
                                 stop_prev = null;
+                                newc = true;
                             }
                         }
                         else
@@ -162,17 +194,21 @@ namespace ProfitCapture.UI
                                     Current = point.Last,
                                     Duration = SelectedTimeline.SelectedDuration,
                                     Index = (ulong)SelectedTimeline.Periods.Count,
-                                    Time = point.Time,
+                                    Time = ti,
                                     Min = point.Last,
                                     Max = point.Last,
                                     Close = point.Last
                                 };
 
-                                stop_time_dur = point.Time.Add(SelectedTimeline.SelectedDuration);
+                                stop_time_dur = CandlePeriod.AddInterval(point.Time, SelectedTimeline.SelectedDuration);
 
                                 SelectedTimeline.Periods.Add(candle);
                                 PlotCandle(candle, true);
-                                PlotLine(point.Time, point.Last, true);
+
+
+                                //var media1 = MediaMovel(9, SelectedTimeline.Periods);
+                                //PlotLine(ti, media1, true);
+                                newc = true;
                             }
                         }
 
@@ -196,12 +232,19 @@ namespace ProfitCapture.UI
                         });
 
                         PlotCandle(candle, false);
-                        PlotLine(point.Time, point.Last, false);
+
+
+
+                        var media = MediaMovel(9, SelectedTimeline.Periods);
+
+                        PlotLine(ti, media, newc);
+
+
 
                         if (!ProcessEntireTimeline)
                         {
                             TimelineMre.Reset();
-                            TimelineMre.Wait(1);
+                            TimelineMre.Wait(100);
                         }
 
                         if (stop_prev == null)
@@ -223,15 +266,34 @@ namespace ProfitCapture.UI
             TimelineThr.Start();
         }
 
-        public void Stop()
-        {
 
+        decimal MediaMovel(int periodos, List<AssetQuoteTimelinePeriod> candles)
+        {
+            var mi = 0.0m;
+            int iz = candles.Count;
+            int ix = 0;
+            while(ix < periodos && iz > 0)
+            {
+                iz--;
+                var cand = candles[iz];
+                var me = cand.Points.Sum(s => s.Last) / (decimal)cand.Points.Count;
+                mi += me;
+                ix++;
+            }
+            var average = mi / (decimal)ix;
+            return average;
         }
 
 
+        public void Stop()
+        {
+            Running = false;
+            TimelineMre.Set();
+        }
+
         public void PlotLine(DateTime x, decimal y, bool add)
         {
-            if(!AcumuladorNext)
+            if (!AcumuladorNext)
             {
                 AcumuladorNext = true;
                 Acumulador = y;
@@ -277,6 +339,11 @@ namespace ProfitCapture.UI
         {
             Principal = principal;
 
+            Principal.CandlePeriods.DataSource    = CandlePeriod.GetDefaultPeriods();
+            Principal.CandlePeriods.DisplayMember = nameof(CandlePeriod.Name);
+            Principal.CandlePeriods.SelectedIndex = 0;
+            Principal.CandlePeriods.SelectedIndexChanged += CandlePeriods_SelectedIndexChanged;
+
             TimelineMre = new ManualResetEventSlim();
 
             AssetGrid    = new DataGridView() { Dock = DockStyle.Fill };
@@ -287,6 +354,12 @@ namespace ProfitCapture.UI
 
             DataGridViewTemplate.EsquemaBrancoLinhaInferior(AssetGrid);
             DataGridViewTemplate.EsquemaBrancoLinhaInferior(DatetimeGrid);
+            AssetGrid.BackgroundColor = Color.FromArgb(60, 60, 60);
+            AssetGrid.RowsDefaultCellStyle.BackColor = Color.FromArgb(60, 60, 60);
+            DatetimeGrid.BackgroundColor = Color.FromArgb(60, 60, 60);
+            DatetimeGrid.RowsDefaultCellStyle.BackColor = Color.FromArgb(60, 60, 60);
+
+
 
             AssetGrid.Columns.AddRange(DataGridViewTemplate.CriarColunaTexto(nameof(AssetQuote.Rubric), nameof(AssetQuote.Rubric)));
             DatetimeGrid.Columns.AddRange(DataGridViewTemplate.CriarColunaTexto(nameof(AssetQuoteTimeline.Date), nameof(AssetQuoteTimeline.Date)));
@@ -327,6 +400,7 @@ namespace ProfitCapture.UI
             };
         }
 
+       
     }
 
 

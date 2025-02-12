@@ -1,4 +1,5 @@
-﻿using ProfitCapture.Models;
+﻿using Newtonsoft.Json;
+using ProfitCapture.Models;
 using System.Globalization;
 
 
@@ -42,45 +43,38 @@ namespace ProfitCapture.Parsers
         {
             var result = new List<AssetQuoteTimelinePoint>();
             var text  = File.ReadAllText(timeline.Local);
-            var lines = text.Split('\n');
+            var lines = text.Split('\n',StringSplitOptions.RemoveEmptyEntries);
 
             var im = index+1;
 
             int ix = 0; 
             while(ix <  lines.Length)
             {
-                var fields = lines[ix].Split('|');
+                var va = lines[ix];
+                var ob = JsonConvert.DeserializeObject<AssetPoint>(va);
 
-                if(fields.Length >= 4)
+                if(ob.Name.EndsWith(".ULT"))
                 {
-                    var p1 = fields[0].Split("=");
-                    var p2 = fields[1].Split("=");
-                    var p3 = fields[2].Split("=");
-                    var p4 = fields[3].Split("=");
-
-                    if(p1.Length >= 2 && p2.Length >= 2 && p3.Length >= 2 && p4.Length >= 2)
+                    var aqtp = new AssetQuoteTimelinePoint()
                     {
-                        var v1 = TimeSpan.Parse(p1[1]);
-                        var v2 = decimal.Parse(p2[1], CultureInfo.CurrentCulture);
-                        var v3 = decimal.Parse(p3[1], CultureInfo.CurrentCulture);
-                        var v4 = decimal.Parse(p4[1], CultureInfo.CurrentCulture);
-
-                        var aqtp = new AssetQuoteTimelinePoint()
-                        { 
-                            Index = im,
-                            Time = new DateTime(timeline.Date.Year,timeline.Date.Month, timeline.Date.Day, v1.Hours, v1.Minutes, v1.Seconds), 
-                            Last = v2,  
-                            Negotiations = v3,
-                            Volumes = v4
-                        };
-                        result.Add(aqtp);
-                        im++;
-                    }
+                        Index = im,
+                        Time  = new DateTime(timeline.Date.Year, timeline.Date.Month, timeline.Date.Day, ob.Time.Hours, ob.Time.Minutes, ob.Time.Seconds, ob.Time.Milliseconds),
+                        Last  = decimal.Parse(ob.Value, CultureInfo.CurrentCulture)
+                    };
+                    result.Add(aqtp);
+                    im++;
                 }
                 ix++;
             }
             return result;
         }
 
+    }
+
+    public class AssetPoint
+    {
+        public TimeSpan Time { get; set; }
+        public string Name { get; set; }
+        public string Value { get; set; }
     }
 }

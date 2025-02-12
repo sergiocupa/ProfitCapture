@@ -40,8 +40,10 @@
             panel6 = new Panel();
             label2 = new Label();
             panel7 = new Panel();
+            CandlePeriods = new ComboBox();
             label3 = new Label();
             panel8 = new Panel();
+            label6 = new Label();
             label5 = new Label();
             numericUpDown1 = new NumericUpDown();
             button3 = new Button();
@@ -52,7 +54,6 @@
             panel1 = new Panel();
             button1 = new Button();
             panel2 = new Panel();
-            label6 = new Label();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
@@ -87,12 +88,12 @@
             // 
             // label1
             // 
-            label1.AutoSize = true;
-            label1.Location = new Point(8, 62);
+            label1.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label1.ForeColor = Color.IndianRed;
+            label1.Location = new Point(8, 78);
             label1.Name = "label1";
-            label1.Size = new Size(38, 15);
+            label1.Size = new Size(281, 15);
             label1.TabIndex = 4;
-            label1.Text = "label1";
             // 
             // tabControl1
             // 
@@ -102,26 +103,27 @@
             tabControl1.Location = new Point(0, 0);
             tabControl1.Margin = new Padding(0);
             tabControl1.Name = "tabControl1";
+            tabControl1.Padding = new Point(0, 0);
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(1364, 549);
+            tabControl1.Size = new Size(1128, 549);
             tabControl1.TabIndex = 5;
             // 
             // tabPage1
             // 
+            tabPage1.BackColor = Color.FromArgb(60, 60, 60);
             tabPage1.Controls.Add(tableLayoutPanel2);
             tabPage1.Location = new Point(4, 24);
             tabPage1.Margin = new Padding(0);
             tabPage1.Name = "tabPage1";
-            tabPage1.Size = new Size(1356, 521);
+            tabPage1.Size = new Size(1120, 521);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "tabPage1";
-            tabPage1.UseVisualStyleBackColor = true;
             // 
             // tableLayoutPanel2
             // 
             tableLayoutPanel2.ColumnCount = 3;
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
-            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tableLayoutPanel2.Controls.Add(panel5, 2, 1);
             tableLayoutPanel2.Controls.Add(panel4, 1, 1);
@@ -131,20 +133,21 @@
             tableLayoutPanel2.Controls.Add(panel8, 2, 0);
             tableLayoutPanel2.Dock = DockStyle.Fill;
             tableLayoutPanel2.Location = new Point(0, 0);
+            tableLayoutPanel2.Margin = new Padding(0);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
             tableLayoutPanel2.RowCount = 2;
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel2.Size = new Size(1356, 521);
+            tableLayoutPanel2.Size = new Size(1120, 521);
             tableLayoutPanel2.TabIndex = 0;
             // 
             // panel5
             // 
             panel5.Dock = DockStyle.Fill;
-            panel5.Location = new Point(240, 34);
+            panel5.Location = new Point(250, 34);
             panel5.Margin = new Padding(0);
             panel5.Name = "panel5";
-            panel5.Size = new Size(1116, 487);
+            panel5.Size = new Size(870, 487);
             panel5.TabIndex = 2;
             // 
             // panel4
@@ -153,7 +156,7 @@
             panel4.Location = new Point(120, 34);
             panel4.Margin = new Padding(0);
             panel4.Name = "panel4";
-            panel4.Size = new Size(120, 487);
+            panel4.Size = new Size(130, 487);
             panel4.TabIndex = 1;
             // 
             // panel3
@@ -178,7 +181,7 @@
             // label2
             // 
             label2.Dock = DockStyle.Fill;
-            label2.ForeColor = SystemColors.HotTrack;
+            label2.ForeColor = Color.FromArgb(60, 200, 255);
             label2.Location = new Point(0, 0);
             label2.Name = "label2";
             label2.Size = new Size(120, 34);
@@ -188,21 +191,32 @@
             // 
             // panel7
             // 
+            panel7.Controls.Add(CandlePeriods);
             panel7.Controls.Add(label3);
             panel7.Dock = DockStyle.Fill;
             panel7.Location = new Point(120, 0);
             panel7.Margin = new Padding(0);
             panel7.Name = "panel7";
-            panel7.Size = new Size(120, 34);
+            panel7.Size = new Size(130, 34);
             panel7.TabIndex = 4;
+            // 
+            // CandlePeriods
+            // 
+            CandlePeriods.BackColor = Color.FromArgb(60, 60, 60);
+            CandlePeriods.ForeColor = Color.White;
+            CandlePeriods.FormattingEnabled = true;
+            CandlePeriods.Location = new Point(57, 6);
+            CandlePeriods.Name = "CandlePeriods";
+            CandlePeriods.Size = new Size(65, 23);
+            CandlePeriods.TabIndex = 0;
             // 
             // label3
             // 
             label3.Dock = DockStyle.Fill;
-            label3.ForeColor = SystemColors.HotTrack;
+            label3.ForeColor = Color.FromArgb(60, 200, 255);
             label3.Location = new Point(0, 0);
             label3.Name = "label3";
-            label3.Size = new Size(120, 34);
+            label3.Size = new Size(130, 34);
             label3.TabIndex = 1;
             label3.Text = "Data";
             label3.TextAlign = ContentAlignment.BottomLeft;
@@ -216,16 +230,26 @@
             panel8.Controls.Add(label4);
             panel8.Controls.Add(checkBox1);
             panel8.Dock = DockStyle.Fill;
-            panel8.Location = new Point(240, 0);
+            panel8.Location = new Point(250, 0);
             panel8.Margin = new Padding(0);
             panel8.Name = "panel8";
-            panel8.Size = new Size(1116, 34);
+            panel8.Size = new Size(870, 34);
             panel8.TabIndex = 5;
+            // 
+            // label6
+            // 
+            label6.Font = new Font("Segoe UI", 8F);
+            label6.ForeColor = Color.FromArgb(60, 200, 255);
+            label6.Location = new Point(480, 17);
+            label6.Name = "label6";
+            label6.Size = new Size(553, 15);
+            label6.TabIndex = 5;
+            label6.Text = "label6";
             // 
             // label5
             // 
             label5.Font = new Font("Segoe UI", 8F);
-            label5.ForeColor = SystemColors.Highlight;
+            label5.ForeColor = Color.FromArgb(60, 200, 255);
             label5.Location = new Point(480, 1);
             label5.Name = "label5";
             label5.Size = new Size(553, 15);
@@ -234,6 +258,8 @@
             // 
             // numericUpDown1
             // 
+            numericUpDown1.BackColor = Color.FromArgb(60, 60, 60);
+            numericUpDown1.ForeColor = Color.White;
             numericUpDown1.Location = new Point(178, 7);
             numericUpDown1.Margin = new Padding(0);
             numericUpDown1.Name = "numericUpDown1";
@@ -255,6 +281,7 @@
             // label4
             // 
             label4.AutoSize = true;
+            label4.ForeColor = Color.White;
             label4.Location = new Point(112, 9);
             label4.Name = "label4";
             label4.Size = new Size(64, 15);
@@ -264,6 +291,7 @@
             // checkBox1
             // 
             checkBox1.AutoSize = true;
+            checkBox1.ForeColor = Color.White;
             checkBox1.Location = new Point(255, 8);
             checkBox1.Name = "checkBox1";
             checkBox1.Size = new Size(186, 19);
@@ -273,14 +301,14 @@
             // 
             // tabPage2
             // 
+            tabPage2.BackColor = Color.FromArgb(60, 60, 60);
             tabPage2.Controls.Add(tableLayoutPanel1);
             tabPage2.Location = new Point(4, 24);
             tabPage2.Margin = new Padding(0);
             tabPage2.Name = "tabPage2";
-            tabPage2.Size = new Size(1107, 521);
+            tabPage2.Size = new Size(1120, 521);
             tabPage2.TabIndex = 1;
             tabPage2.Text = "Captura";
-            tabPage2.UseVisualStyleBackColor = true;
             // 
             // tableLayoutPanel1
             // 
@@ -296,7 +324,7 @@
             tableLayoutPanel1.RowCount = 2;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 19.43128F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 80.56872F));
-            tableLayoutPanel1.Size = new Size(1107, 521);
+            tableLayoutPanel1.Size = new Size(1120, 521);
             tableLayoutPanel1.TabIndex = 6;
             // 
             // panel1
@@ -309,7 +337,7 @@
             panel1.Location = new Point(0, 0);
             panel1.Margin = new Padding(0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(1107, 101);
+            panel1.Size = new Size(1120, 101);
             panel1.TabIndex = 0;
             // 
             // button1
@@ -324,30 +352,20 @@
             // 
             // panel2
             // 
-            panel2.BackColor = SystemColors.ButtonFace;
+            panel2.BackColor = Color.FromArgb(60, 60, 60);
             panel2.Dock = DockStyle.Fill;
             panel2.Location = new Point(0, 101);
             panel2.Margin = new Padding(0);
             panel2.Name = "panel2";
-            panel2.Size = new Size(1107, 420);
+            panel2.Size = new Size(1120, 420);
             panel2.TabIndex = 1;
-            // 
-            // label6
-            // 
-            label6.Font = new Font("Segoe UI", 8F);
-            label6.ForeColor = SystemColors.Highlight;
-            label6.Location = new Point(480, 17);
-            label6.Name = "label6";
-            label6.Size = new Size(553, 15);
-            label6.TabIndex = 5;
-            label6.Text = "label6";
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackColor = Color.White;
-            ClientSize = new Size(1364, 549);
+            BackColor = Color.FromArgb(60, 60, 60);
+            ClientSize = new Size(1128, 549);
             Controls.Add(tabControl1);
             Name = "Form1";
             Text = "Form1";
@@ -362,7 +380,6 @@
             tabPage2.ResumeLayout(false);
             tableLayoutPanel1.ResumeLayout(false);
             panel1.ResumeLayout(false);
-            panel1.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -393,5 +410,6 @@
         private NumericUpDown numericUpDown1;
         internal Label label5;
         internal Label label6;
+        internal ComboBox CandlePeriods;
     }
 }

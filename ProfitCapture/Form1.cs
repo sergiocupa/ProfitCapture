@@ -82,16 +82,12 @@ namespace ProfitCapture
 
         Capture     Capture;
         AssetViewer AssetView;
-        LogConsole Log;
 
         public Form1()
         {
             InitializeComponent();
 
-            Log = new LogConsole(null);
-            Log.Show();
-
-            Capture = new Capture(panel2);
+            Capture = new Capture(panel2,label1);
 
             FormClosing += Form1_FormClosing;
 
@@ -110,6 +106,7 @@ namespace ProfitCapture
         public string Value;
         public string Field;
         public string Origin;
+        public DateTime Time;
 
         public DdeItem()
         {
