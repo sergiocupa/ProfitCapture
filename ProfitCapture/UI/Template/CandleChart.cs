@@ -241,7 +241,7 @@ namespace ProfitCapture.UI.Template
                 //s["OpenCloseStyle"] = "Triangle"; // Forma dos marcadores de abertura/fechamento
                 s["OpenCloseStyle"] = "Candlestick"; // Forma dos marcadores de abertura/fechamento
                 s["ShowOpenClose"]  = "Both"; // Mostra abertura e fechamento
-                s["PointWidth"]     = "0.8"; // Largura das velas
+                s["PointWidth"]     = "0.7"; // Largura das velas
 
                 // Cores de alta e baixa
                 s["PriceUpColor"]   = "#60FFBB"; // Alta

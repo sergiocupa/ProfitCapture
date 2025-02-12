@@ -235,16 +235,17 @@ namespace ProfitCapture.UI
 
 
 
-                        var media = MediaMovel(9, SelectedTimeline.Periods);
+                        var media9 = MediaMovel(9, SelectedTimeline.Periods);
+                        var media21 = MediaMovel(21, SelectedTimeline.Periods);
 
-                        PlotLine(ti, media, newc);
-
+                        PlotLine01(ti, media9, newc);
+                        PlotLine02(ti, media21, newc);
 
 
                         if (!ProcessEntireTimeline)
                         {
                             TimelineMre.Reset();
-                            TimelineMre.Wait(100);
+                            TimelineMre.Wait(10);
                         }
 
                         if (stop_prev == null)
@@ -276,7 +277,7 @@ namespace ProfitCapture.UI
             {
                 iz--;
                 var cand = candles[iz];
-                var me = cand.Points.Sum(s => s.Last) / (decimal)cand.Points.Count;
+                var me = cand.Close; // cand.Points.Sum(s => s.Last) / (decimal)cand.Points.Count;
                 mi += me;
                 ix++;
             }
@@ -291,16 +292,13 @@ namespace ProfitCapture.UI
             TimelineMre.Set();
         }
 
-        public void PlotLine(DateTime x, decimal y, bool add)
+        public void PlotLine01(DateTime x, decimal y, bool add)
         {
-            if (!AcumuladorNext)
-            {
-                AcumuladorNext = true;
-                Acumulador = y;
-            }
-
-            Acumulador = MathFunc.Integrate(y, Acumulador, 200, 1);
-            AssetChart.Append(x, (double)Acumulador, 1, !add);
+            AssetChart.Append(x, (double)y, 1, !add);
+        }
+        public void PlotLine02(DateTime x, decimal y, bool add)
+        {
+            AssetChart.Append(x, (double)y, 2, !add);
         }
 
         public void PlotCandle(AssetQuoteTimelinePeriod candle, bool add)
@@ -350,7 +348,8 @@ namespace ProfitCapture.UI
             DatetimeGrid = new DataGridView() { Dock = DockStyle.Fill };
             AssetChart   = new CandleChart()  { Dock = DockStyle.Fill };
 
-            AssetChart.AddSerie("Media");
+            AssetChart.AddSerie("Media9");
+            AssetChart.AddSerie("Media21");
 
             DataGridViewTemplate.EsquemaBrancoLinhaInferior(AssetGrid);
             DataGridViewTemplate.EsquemaBrancoLinhaInferior(DatetimeGrid);
