@@ -50,10 +50,10 @@ namespace ProfitCapture.Parsers
             int ix = 0; 
             while(ix <  lines.Length)
             {
-                var va = lines[ix];
+                var va = lines[ix].Trim();
                 var ob = JsonConvert.DeserializeObject<AssetPoint>(va);
 
-                if(ob.Name.EndsWith(".ULT"))
+                if(ob != null && !string.IsNullOrEmpty(ob.Name) && ob.Name.EndsWith(".ULT"))
                 {
                     var aqtp = new AssetQuoteTimelinePoint()
                     {

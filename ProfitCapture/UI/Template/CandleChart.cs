@@ -89,7 +89,7 @@ namespace ProfitCapture.UI.Template
                         if (pt != null)
                         {
                             var pp = (CandlePoint)pt;
-                            //pp.XValue = x.ToOADate();
+                            pp.XValue = x.ToOADate();
                             pp.InputX = x;
                             pp.YValues = new double[] { y };
                         }
@@ -105,7 +105,7 @@ namespace ProfitCapture.UI.Template
                         Chart.Series[serie].Points.Add(dp);
                     }
 
-                    //UpdateRangeX(x, serie);
+                    UpdateRangeX(x, serie);
                 }
             }
             catch (Exception ex)
@@ -241,7 +241,7 @@ namespace ProfitCapture.UI.Template
                 //s["OpenCloseStyle"] = "Triangle"; // Forma dos marcadores de abertura/fechamento
                 s["OpenCloseStyle"] = "Candlestick"; // Forma dos marcadores de abertura/fechamento
                 s["ShowOpenClose"]  = "Both"; // Mostra abertura e fechamento
-                s["PointWidth"]     = "0.7"; // Largura das velas
+                s["PointWidth"]     = "0.6"; // Largura das velas
 
                 // Cores de alta e baixa
                 s["PriceUpColor"]   = "#60FFBB"; // Alta
@@ -328,38 +328,133 @@ namespace ProfitCapture.UI.Template
             }
         }
 
+
+        private DataPoint? GetNearestCandle(Chart chart, int mouseX, int mouseY, int serie_index)
+        {
+            DataPoint? nearestPoint = null;
+
+            double xValue = Area.AxisX.PixelPositionToValue(mouseX);
+            double yValue = Area.AxisY2.PixelPositionToValue(mouseY);
+
+            Series series = chart.Series[serie_index];
+
+            if(series.ChartType == SeriesChartType.Candlestick)
+            {
+                double minXDistance = double.MaxValue;
+
+                foreach (DataPoint candle in series.Points)
+                {
+                    double xDistance = Math.Abs(candle.XValue - xValue);
+
+                    double high = candle.YValues[1];
+                    double low = candle.YValues[0];
+
+                    if (yValue >= low && yValue <= high && xDistance < minXDistance)
+                    {
+                        minXDistance = xDistance;
+                        nearestPoint = candle;
+                       //break;
+                    }
+                }
+            }
+            else
+            {
+                double minDistance = double.MaxValue;
+
+                foreach (DataPoint point in series.Points)
+                {
+                    // Calcula a distância entre o ponto clicado e cada ponto da série
+                    double distance = Math.Sqrt(Math.Pow(point.XValue - xValue, 2) + Math.Pow(point.YValues[0] - yValue, 2));
+
+                    if (distance < minDistance)
+                    {
+                        minDistance = distance;
+                        nearestPoint = point;
+                        //break;
+                    }
+                }
+            }
+
+            return nearestPoint;
+        }
+
+        private void Chart_MouseClick(object? sender, MouseEventArgs e)
+        {
+            int ix = 0;
+            while(ix < Chart.Series.Count)
+            {
+                DataPoint? dp = GetNearestCandle(Chart, e.X, e.Y, ix);
+                if(dp != null)
+                {
+                    DateTime time = DateTime.FromOADate(dp.XValue);
+                    var se = Chart.Series[ix];
+
+                    if (se.ChartType == SeriesChartType.Candlestick)
+                    {
+                        MessageBox.Show($"{se.Name}:\nHora: {time:HH:mm:ss}\nMáxima: {dp.YValues[0]:F2}\nMínima: {dp.YValues[1]:F2}");
+                    }
+                    else
+                    {
+                        MessageBox.Show($"{se.Name}:\nHora: {time:HH:mm:ss}\nValor: {dp.YValues[0]:F2}");
+                    }
+                    break;
+                }
+                ix++;
+            }
+        }
+
         private void Chart_MouseMove(object? sender, MouseEventArgs e)
         {
-            if (IsDragging)
+            DateTime novoMinX = new DateTime(0);
+            DateTime novoMaxX;
+
+            try
             {
-                // Calcula a faixa atual do eixo Y2
-                double rangeY      = Area.AxisY2.Maximum - Area.AxisY2.Minimum;
-                double moveFactorY = (e.Y - LastMouseY) * (rangeY / 500.0);
-                Area.AxisY2.Minimum += moveFactorY;
-                Area.AxisY2.Maximum += moveFactorY;
-                LastMouseY = e.Y;
+                if (IsDragging)
+                {
+                    Area.RecalculateAxesScale();
+
+                    // Y
+                    double rangeY = Area.AxisY2.Maximum - Area.AxisY2.Minimum;
+                    double moveFactorY = (e.Y - LastMouseY) * (rangeY / 500.0);
+                    Area.AxisY2.Minimum += moveFactorY;
+                    Area.AxisY2.Maximum += moveFactorY;
+                    LastMouseY = e.Y;
 
 
+                    // X
+                    DateTime minX = DateTime.FromOADate(Area.AxisX.Minimum);
 
-                // Converte valores do eixo X para DateTime
-                DateTime minX = DateTime.FromOADate(Area.AxisX.Minimum);
-                DateTime maxX = DateTime.FromOADate(Area.AxisX.Maximum);
-                TimeSpan rangeX = maxX - minX;
+                    if (!Step.HasValue) Step = new TimeSpan(0, 1, 0);
 
-                if(!Step.HasValue) Step = new TimeSpan(0, 1, 0);
+                    var PixelsPerStep = (double)Width / ((double)SizeX.Ticks / (double)Step.Value.Ticks);
+                    var Displacement  = e.X - LastMouseX;
 
-                // Ajusta a sensibilidade conforme a escala dos eixos
-                TimeSpan moveFactorX = TimeSpan.FromMilliseconds((e.X - LastMouseX) * (Step.Value.TotalMilliseconds / 10.0));
+                    if (Displacement >= PixelsPerStep)
+                    {
+                        novoMinX = minX.Subtract(Step.Value);
+                        LastMouseX = e.X;
 
-                DateTime novoMinX = minX.Add(moveFactorX);
-                DateTime novoMaxX = maxX.Add(moveFactorX);
+                        Area.AxisX.Minimum = novoMinX.ToOADate();
+                        novoMaxX = novoMinX.Add(SizeX);
+                        Area.AxisX.Maximum = novoMaxX.ToOADate();
+                    }
+                    else if(Displacement <= (-PixelsPerStep))
+                    {
+                        novoMinX = minX.Add(Step.Value);
+                        LastMouseX = e.X;
 
-                OffsetX -= moveFactorX;
-                //Console.WriteLine("novoMinX: "+ novoMinX + " | Offset: " + OffsetX);
+                        Area.AxisX.Minimum = novoMinX.ToOADate();
+                        novoMaxX = novoMinX.Add(SizeX);
+                        Area.AxisX.Maximum = novoMaxX.ToOADate();
+                    }
 
-                Area.AxisX.Minimum = novoMinX.ToOADate();
-                Area.AxisX.Maximum = novoMaxX.ToOADate();
-                LastMouseX = e.X;
+                    Area.RecalculateAxesScale();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.ToString());
             }
         }
 
@@ -369,6 +464,7 @@ namespace ProfitCapture.UI.Template
             {
                 IsDragging = true;
                 LastMouseY = e.Y;
+                LastMouseX = e.X;
             }
         }
 
@@ -404,6 +500,7 @@ namespace ProfitCapture.UI.Template
             Chart.MouseUp    += Chart_MouseUp;
             Chart.MouseDown  += Chart_MouseDown;
             Chart.MouseMove  += Chart_MouseMove;
+            Chart.MouseClick += Chart_MouseClick;
 
             Area = new ChartArea() { BackColor = Color.FromArgb(70, 70, 80) };
             Area.Name = "CandleArea";

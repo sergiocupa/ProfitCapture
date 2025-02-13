@@ -1,7 +1,6 @@
 ﻿using ProfitCapture.Models;
 using ProfitCapture.Parsers;
 using ProfitCapture.UI.Template;
-using ProfitCapture.Utils;
 using System.ComponentModel;
 
 
@@ -67,6 +66,7 @@ namespace ProfitCapture.UI
             {
                 var per = (CandlePeriod)Principal.CandlePeriods.Items[Principal.CandlePeriods.SelectedIndex];
                 SelectedTimeline.SelectedDuration = per.Period;
+                AssetChart.SetStep(per.Period);
             }
 
             TimelineMre.Set();
@@ -83,6 +83,7 @@ namespace ProfitCapture.UI
                 {
                     var per = (CandlePeriod)Principal.CandlePeriods.Items[Principal.CandlePeriods.SelectedIndex];
                     SelectedTimeline.SelectedDuration = per.Period;
+                    AssetChart.SetStep(per.Period);
                 }
 
                 if (Running)
@@ -93,6 +94,17 @@ namespace ProfitCapture.UI
             }
         }
 
+
+        private void ProtCandles(AssetQuoteTimelinePeriod candle, bool newc)
+        {
+            PlotCandle(candle, newc);
+
+            var media9  = MediaMovel(9, candle.Index, SelectedTimeline.Periods);
+            var media21 = MediaMovel(21, candle.Index, SelectedTimeline.Periods);
+
+            PlotLine01(candle.Time, media9, newc);
+            PlotLine02(candle.Time, media21, newc);
+        }
 
         public void Start()
         {
@@ -105,7 +117,7 @@ namespace ProfitCapture.UI
                 {
                     Running = true;
 
-                    // carregar points
+                    ProcessEntireTimeline = true;
 
                     SelectedTimeline.Points = AssetQuoteParser.ReadAssembleTimelinePoints(SelectedTimeline, 0);
                     var om = SelectedTimeline.Points.OrderBy(o => o.Time).ToList();
@@ -116,7 +128,6 @@ namespace ProfitCapture.UI
                     {
                         Principal.label5.Text = first != null ? first.Time.ToString("dd/MM/yyyy HH:mm:ss") : "###" + " < > " + last != null ? last.Time.ToString("dd/MM/yyyy HH:mm:ss") : "###";
                     });
-
 
                     SelectedTimeline.Periods.Clear();
 
@@ -142,9 +153,11 @@ namespace ProfitCapture.UI
                     }
                     AssetChart.ResetY(vmin, vmax);
 
+                    AssetQuoteTimelinePoint point = null;
+
                     while (Running && SelectedPoint < SelectedTimeline.Points.Count)
                     {
-                        var point = SelectedTimeline.Points[SelectedPoint];
+                        point = SelectedTimeline.Points[SelectedPoint];
                         var ti = CandlePeriod.RoundToNearestInterval(point.Time, SelectedTimeline.SelectedDuration);
 
                         // Usar exemplo do chatgpt
@@ -174,11 +187,6 @@ namespace ProfitCapture.UI
                                 stop_time_dur = CandlePeriod.AddInterval(point.Time, SelectedTimeline.SelectedDuration);
 
                                 SelectedTimeline.Periods.Add(candle);
-                                PlotCandle(candle, true);
-
-
-                                //var media1 = MediaMovel(9, SelectedTimeline.Periods);
-                                //PlotLine(ti, media1, true);
                                 stop_prev = null;
                                 newc = true;
                             }
@@ -201,13 +209,7 @@ namespace ProfitCapture.UI
                                 };
 
                                 stop_time_dur = CandlePeriod.AddInterval(point.Time, SelectedTimeline.SelectedDuration);
-
                                 SelectedTimeline.Periods.Add(candle);
-                                PlotCandle(candle, true);
-
-
-                                //var media1 = MediaMovel(9, SelectedTimeline.Periods);
-                                //PlotLine(ti, media1, true);
                                 newc = true;
                             }
                         }
@@ -226,26 +228,17 @@ namespace ProfitCapture.UI
                             candle.Min = candle.Current;
                         }
 
-                        Principal.label6.Invoke(() =>
-                        {
-                            Principal.label6.Text = "Count: " + SelectedPoint + " | Current: " + point.Last + " | Min: " + candle.Min + " | Max: " + candle.Max;
-                        });
-
-                        PlotCandle(candle, false);
-
-
-
-                        var media9 = MediaMovel(9, SelectedTimeline.Periods);
-                        var media21 = MediaMovel(21, SelectedTimeline.Periods);
-
-                        PlotLine01(ti, media9, newc);
-                        PlotLine02(ti, media21, newc);
-
-
                         if (!ProcessEntireTimeline)
                         {
+                            Principal.label6.Invoke(() =>
+                            {
+                                Principal.label6.Text = "Count: " + SelectedPoint + "/" + SelectedTimeline.Points.Count + " | Current: " + point.Last + " | Min: " + candle.Min + " | Max: " + candle.Max;
+                            });
+
+                            ProtCandles(candle, newc);
+
                             TimelineMre.Reset();
-                            TimelineMre.Wait(10);
+                            TimelineMre.Wait(1);
                         }
 
                         if (stop_prev == null)
@@ -254,6 +247,22 @@ namespace ProfitCapture.UI
                         }
                         previus = point;
                         SelectedPoint++;
+                    }
+
+                    Principal.label6.Invoke(() =>
+                    {
+                        Principal.label6.Text = "Count: " + SelectedPoint + "/" + SelectedTimeline.Points.Count + " | Current: " + point.Last + " | Min: " + candle.Min + " | Max: " + candle.Max;
+                    });
+
+                    if (ProcessEntireTimeline)
+                    {
+                        int ix = 0;
+                        while (ix < SelectedTimeline.Periods.Count)
+                        {
+                            var cand = SelectedTimeline.Periods[ix];
+                            ProtCandles(cand, true);
+                            ix++;
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -268,20 +277,30 @@ namespace ProfitCapture.UI
         }
 
 
-        decimal MediaMovel(int periodos, List<AssetQuoteTimelinePeriod> candles)
+        decimal MediaMovel(int periodos, ulong index, List<AssetQuoteTimelinePeriod> candles)
         {
-            var mi = 0.0m;
-            int iz = candles.Count;
-            int ix = 0;
-            while(ix < periodos && iz > 0)
+            if(periodos <= 0)
             {
-                iz--;
-                var cand = candles[iz];
-                var me = cand.Close; // cand.Points.Sum(s => s.Last) / (decimal)cand.Points.Count;
-                mi += me;
-                ix++;
+                periodos = 1;
             }
-            var average = mi / (decimal)ix;
+
+            if(index <= 0)
+            {
+                return (candles.Count > 0) ? candles[0].Close : 0;
+            }
+
+            var mi = 0.0m;
+            int sm = 0;
+            int ix = (int)index;
+            while(ix > 0 && sm < periodos)
+            {
+                var cand = candles[ix];
+                var me = cand.Close;
+                mi += me;
+                ix--;
+                sm++;
+            }
+            var average = mi / (decimal)sm;
             return average;
         }
 
@@ -304,12 +323,6 @@ namespace ProfitCapture.UI
         public void PlotCandle(AssetQuoteTimelinePeriod candle, bool add)
         {
             AssetChart.Append(candle.Time, (double)candle.Open, (double)candle.Close, (double)candle.Min, (double)candle.Max, !add);
-
-            //Console.WriteLine("Time: " + candle.Time.ToString("HH:mm:ss") + " | " +
-            //                  "Open: " + candle.Open + " | " +
-            //                  "Close: " + candle.Close + " | " +
-            //                  "Min: " + candle.Min + " | " +
-            //                  "Max: " + candle.Max);
         }
 
 
@@ -328,10 +341,7 @@ namespace ProfitCapture.UI
         DataGridView                    DatetimeGrid;
         CandleChart                     AssetChart;
         Form1                           Principal;
-        LogConsole                      Log;
 
-        decimal Acumulador;
-        bool AcumuladorNext;
 
         internal AssetViewer(Form1 principal, Panel asset_panel, Panel timeline_panel, Panel chart_panel)
         {
@@ -351,12 +361,12 @@ namespace ProfitCapture.UI
             AssetChart.AddSerie("Media9");
             AssetChart.AddSerie("Media21");
 
-            DataGridViewTemplate.EsquemaBrancoLinhaInferior(AssetGrid);
-            DataGridViewTemplate.EsquemaBrancoLinhaInferior(DatetimeGrid);
-            AssetGrid.BackgroundColor = Color.FromArgb(60, 60, 60);
-            AssetGrid.RowsDefaultCellStyle.BackColor = Color.FromArgb(60, 60, 60);
-            DatetimeGrid.BackgroundColor = Color.FromArgb(60, 60, 60);
-            DatetimeGrid.RowsDefaultCellStyle.BackColor = Color.FromArgb(60, 60, 60);
+            DataGridViewTemplate.EsquemaBrancoLinhaAlternada(AssetGrid, true);
+            DataGridViewTemplate.EsquemaBrancoLinhaAlternada(DatetimeGrid, true);
+            //AssetGrid.BackgroundColor = Color.FromArgb(60, 60, 60);
+            //AssetGrid.RowsDefaultCellStyle.BackColor = Color.FromArgb(60, 60, 60);
+            //DatetimeGrid.BackgroundColor = Color.FromArgb(60, 60, 60);
+            //DatetimeGrid.RowsDefaultCellStyle.BackColor = Color.FromArgb(60, 60, 60);
 
 
 
@@ -375,7 +385,7 @@ namespace ProfitCapture.UI
 
             //AssetChart.Demo();
 
-            AssetGrid.CellContentClick += (object? sender, DataGridViewCellEventArgs e) =>
+            AssetGrid.CellClick += (object? sender, DataGridViewCellEventArgs e) =>
             {
                 if(AssetGrid.SelectedRows.Count > 0)
                 {
@@ -386,7 +396,8 @@ namespace ProfitCapture.UI
                     }
                 }
             };
-            DatetimeGrid.CellContentClick += (object? sender, DataGridViewCellEventArgs e) =>
+
+            DatetimeGrid.CellClick += (object? sender, DataGridViewCellEventArgs e) =>
             {
                 if (DatetimeGrid.SelectedRows.Count > 0)
                 {

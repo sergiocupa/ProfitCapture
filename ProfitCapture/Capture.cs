@@ -96,7 +96,7 @@ namespace ProfitCapture
 
             Grid = new DataGridView() { Dock = DockStyle.Fill };
             Body.Controls.Add(Grid);
-            DataGridViewTemplate.EsquemaBrancoLinhaAlternada(Grid);
+            DataGridViewTemplate.EsquemaBrancoLinhaAlternada(Grid, true);
 
             var tp = typeof(AssetGrid);
             var fd = tp.GetProperties();

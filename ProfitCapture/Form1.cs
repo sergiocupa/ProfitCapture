@@ -1,3 +1,4 @@
+using Microsoft.VisualBasic.Logging;
 using ProfitCapture.UI;
 using ProfitCapture.UI.Template;
 
@@ -82,10 +83,14 @@ namespace ProfitCapture
 
         Capture     Capture;
         AssetViewer AssetView;
+        LogConsole Log;
 
         public Form1()
         {
             InitializeComponent();
+
+            Log = new LogConsole(null);
+            Log.Show();
 
             Capture = new Capture(panel2,label1);
 

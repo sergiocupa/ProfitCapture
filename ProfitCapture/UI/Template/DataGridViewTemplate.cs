@@ -30,9 +30,8 @@ namespace ProfitCapture.UI.Template
         }
 
 
-        public static void EsquemaBrancoLinhaAlternada(DataGridView grid, bool CabecalhoVisivel = true, bool readOnly = true)
+        public static void EsquemaBrancoLinhaAlternada(DataGridView grid, bool perfil_escuro, bool CabecalhoVisivel = true, bool readOnly = true)
         {
-            grid.BackgroundColor = Color.White;
             grid.BorderStyle = System.Windows.Forms.BorderStyle.None;
             grid.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             grid.ColumnHeadersVisible = CabecalhoVisivel;
@@ -45,11 +44,27 @@ namespace ProfitCapture.UI.Template
             grid.AdvancedCellBorderStyle.Right = DataGridViewAdvancedCellBorderStyle.None;
             grid.AdvancedCellBorderStyle.Top = DataGridViewAdvancedCellBorderStyle.None;
             grid.AdvancedCellBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.None;
-            grid.DefaultCellStyle.BackColor = Color.White;
-            grid.DefaultCellStyle.Font = new Font(FontFamily.GenericSansSerif, 8, FontStyle.Regular);
             grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            grid.RowsDefaultCellStyle.BackColor = Color.FromArgb(255, 255, 255);
-            grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(235, 245, 255);
+            grid.DefaultCellStyle.Font = new Font(FontFamily.GenericSansSerif, 8, FontStyle.Regular);
+
+            if (perfil_escuro)
+            {
+                var back = Color.FromArgb(60, 60, 60);
+                grid.BackgroundColor                           = back;
+                grid.DefaultCellStyle.ForeColor                = Color.White;
+                grid.DefaultCellStyle.BackColor                = back;
+                grid.RowsDefaultCellStyle.BackColor            = back;
+                grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(80, 80, 80);
+            }
+            else
+            {
+                grid.BackgroundColor                           = Color.White;
+                grid.DefaultCellStyle.ForeColor                = Color.FromArgb(60, 60, 60);
+                grid.DefaultCellStyle.BackColor                = Color.White;
+                grid.RowsDefaultCellStyle.BackColor            = Color.FromArgb(255, 255, 255);
+                grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(235, 245, 255);
+            }
+
             grid.ReadOnly = readOnly;
 
             grid.RowTemplate.Resizable = DataGridViewTriState.True;
