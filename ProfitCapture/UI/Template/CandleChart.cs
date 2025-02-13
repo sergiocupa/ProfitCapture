@@ -1,4 +1,5 @@
 ﻿using ProfitCapture.Utils;
+using System.Runtime.Intrinsics.Arm;
 using System.Windows.Forms.DataVisualization.Charting;
 
 
@@ -328,8 +329,9 @@ namespace ProfitCapture.UI.Template
             }
         }
 
-
-        private DataPoint? GetNearestCandle(Chart chart, int mouseX, int mouseY, int serie_index)
+        // Testar todas as series para ver qual mais proximo
+        // Ignorar se: mouse movimentando
+        private DataPoint? GetNearestCandle(Chart chart, int mouseX, int mouseY, int serie_index, ref double min_distance)
         {
             DataPoint? nearestPoint = null;
 
@@ -337,11 +339,11 @@ namespace ProfitCapture.UI.Template
             double yValue = Area.AxisY2.PixelPositionToValue(mouseY);
 
             Series series = chart.Series[serie_index];
+            double distance = double.MaxValue;
+            bool setted = false;
 
-            if(series.ChartType == SeriesChartType.Candlestick)
+            if (series.ChartType == SeriesChartType.Candlestick)
             {
-                double minXDistance = double.MaxValue;
-
                 foreach (DataPoint candle in series.Points)
                 {
                     double xDistance = Math.Abs(candle.XValue - xValue);
@@ -349,57 +351,74 @@ namespace ProfitCapture.UI.Template
                     double high = candle.YValues[1];
                     double low = candle.YValues[0];
 
-                    if (yValue >= low && yValue <= high && xDistance < minXDistance)
+                    if (yValue >= low && yValue <= high && xDistance < distance)
                     {
-                        minXDistance = xDistance;
+                        distance     = xDistance;
                         nearestPoint = candle;
-                       //break;
+                        setted       = true;
                     }
                 }
             }
             else
             {
-                double minDistance = double.MaxValue;
-
                 foreach (DataPoint point in series.Points)
                 {
                     // Calcula a distância entre o ponto clicado e cada ponto da série
-                    double distance = Math.Sqrt(Math.Pow(point.XValue - xValue, 2) + Math.Pow(point.YValues[0] - yValue, 2));
+                    double d = Math.Sqrt(Math.Pow(point.XValue - xValue, 2) + Math.Pow(point.YValues[0] - yValue, 2));
 
-                    if (distance < minDistance)
+                    if (d < distance)
                     {
-                        minDistance = distance;
+                        distance     = d;
                         nearestPoint = point;
-                        //break;
+                        setted       = true;
                     }
                 }
             }
 
+            if (setted) min_distance = distance;
+
             return nearestPoint;
+        }
+
+
+        public class DataPointDistance
+        {
+            public DataPoint Point { get; set; }
+            public double Distance { get; set; }
+            public int SerieIndex { get; set; }
         }
 
         private void Chart_MouseClick(object? sender, MouseEventArgs e)
         {
+            var list = new List<DataPointDistance>();
+            double distance = 0;
+
             int ix = 0;
             while(ix < Chart.Series.Count)
             {
-                DataPoint? dp = GetNearestCandle(Chart, e.X, e.Y, ix);
+                DataPoint? dp = GetNearestCandle(Chart, e.X, e.Y, ix, ref distance);
                 if(dp != null)
                 {
-                    DateTime time = DateTime.FromOADate(dp.XValue);
-                    var se = Chart.Series[ix];
-
-                    if (se.ChartType == SeriesChartType.Candlestick)
-                    {
-                        MessageBox.Show($"{se.Name}:\nHora: {time:HH:mm:ss}\nMáxima: {dp.YValues[0]:F2}\nMínima: {dp.YValues[1]:F2}");
-                    }
-                    else
-                    {
-                        MessageBox.Show($"{se.Name}:\nHora: {time:HH:mm:ss}\nValor: {dp.YValues[0]:F2}");
-                    }
-                    break;
+                    var ob = new DataPointDistance() { Point = dp, Distance = distance, SerieIndex = ix };
+                    list.Add(ob);
                 }
                 ix++;
+            }
+
+            var ol = list.OrderBy(s => s.Distance).FirstOrDefault();
+            if(ol != null)
+            {
+                DateTime time = DateTime.FromOADate(ol.Point.XValue);
+                var se = Chart.Series[ol.SerieIndex];
+
+                if (se.ChartType == SeriesChartType.Candlestick)
+                {
+                    MessageBox.Show($"{se.Name}:\nHora: {time:HH:mm:ss}\nMáxima: {ol.Point.YValues[0]:F2}\nMínima: {ol.Point.YValues[1]:F2}");
+                }
+                else
+                {
+                    MessageBox.Show($"{se.Name}:\nHora: {time:HH:mm:ss}\nValor: {ol.Point.YValues[0]:F2}");
+                }
             }
         }
 
