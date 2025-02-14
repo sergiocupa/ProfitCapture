@@ -3,7 +3,6 @@ using ProfitCapture.Parsers;
 using ProfitCapture.UI.Template;
 using NDde.Client;
 using System.ComponentModel;
-using System.Globalization;
 
 
 namespace ProfitCapture
@@ -11,40 +10,6 @@ namespace ProfitCapture
 
     internal class Capture
     {
-
-        private void LineReceived(List<AssetGrid> items)
-        {
-            EventCounter++;
-
-            if (items.Count > 0)
-            {
-                var dir       = Setting.CaptureLocation + "/" + items[0].Asset;
-                var file_name = dir + "/" + DateTime.Now.ToString("yyyy-MM-dd") + ".dat";
-
-                var content = string.Join("|", items.Select(s => s.Name + "=" + s.Value)) + "\n";
-                
-                File.AppendAllText(file_name, content);
-            }
-
-            Grid.Invoke(() => 
-            {
-                Grid.SuspendLayout();
-
-                foreach (var i in Assets)
-                {
-                    var a = items.Where(w => w.Item == i.Item).FirstOrDefault();
-                    if (a != null)
-                    {
-                        i.Value = a.Value;
-                        i.Count++;
-                    }
-                }
-
-                Grid.ResumeLayout();
-                Grid.Refresh();
-            });
-        }
-
 
         private void AdviseReceived(object o, DdeAdviseEventArgs args)
         {
@@ -56,9 +21,10 @@ namespace ProfitCapture
                 var target = Assets.Where(w => w.Item == a.Name).FirstOrDefault();
                 if (target != null)
                 {
-                    var dir     = Setting.CaptureLocation.Replace("\\","/") + "/" + target.Asset;
+                    var dir     = Setting.GetCompleteCaptureLocation() + "/" + target.Asset;
                     var fname   = dir + "/" + DateTime.Now.ToString("yyyy-MM-dd") + ".dat";
-                    var content = "{Time:\"" + a.Time.ToString("HH:mm:ss.fffff") + "\",Name:\"" + a.Name + "\",Value:\"" + a.Value + "\"}\n";
+                    var content = "{Time:\"" + a.Time.ToString("HH:mm:ss.fffffff") + "\",Name:\"" + a.Name + "\",Value:\"" + a.Value.Replace(",",".") + "\"}\n";
+
                     File.AppendAllText(fname, content);
 
                     Grid.Invoke(() =>
@@ -71,19 +37,6 @@ namespace ProfitCapture
                     });
 
                     CounterLabel.Invoke(() => { CounterLabel.Text = Counter.ToString(); });
-
-
-                    //target.Value = a.Value.Trim();
-
-                    //var all = Assets.Where(w => w.Asset == target.Asset).ToList();
-                    //var av = all.Where(w => !string.IsNullOrEmpty(w.Value)).Count();
-
-                    //if(all.Count == av)
-                    //{
-                    //    var nv = all.Select(s => new AssetGrid() { Asset = s.Asset, Name = s.Name, Item = s.Item, Value = s.Value, Local = Setting.CaptureLocation }).ToList();
-                    //    all.ForEach(s => s.Value = "");
-                    //    LineQueue.Enqueue(LineReceived, nv);
-                    //}
                 }
             },
             new DdeItem() { Name = args.Item, Value = args.Text.Trim('\0'), Time = DateTime.Now });
@@ -115,16 +68,11 @@ namespace ProfitCapture
                 MessageBox.Show("Não foi possível converter texto informado para formar a integração entre app Nelogica"); return;
             }
 
-            if (!Directory.Exists(Setting.CaptureLocation))
-            {
-                Directory.CreateDirectory(Setting.CaptureLocation);
-            }
-
             var items = new List<string>();
             Assets.Clear();
             foreach (var f in Info.Assets)
             {
-                var dir = Setting.CaptureLocation + "/" + f.Name;
+                var dir = Setting.GetCompleteCaptureLocation() + "/" + f.Name;
                 if (!Directory.Exists(dir))
                 {
                     Directory.CreateDirectory(dir);
@@ -132,7 +80,7 @@ namespace ProfitCapture
 
                 foreach (var a in f.Fields)
                 {
-                    var grid = new AssetGrid() { Asset = f.Name, Name = a.Name, Item = a.Item, Local = Setting.CaptureLocation };
+                    var grid = new AssetGrid() { Asset = f.Name, Name = a.Name, Item = a.Item, RootPath = Setting.CaptureLocation };
                     Assets.Add(grid);
                     items.Add(a.Item);
                 }

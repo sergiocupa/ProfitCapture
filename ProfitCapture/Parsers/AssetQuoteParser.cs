@@ -20,16 +20,19 @@ namespace ProfitCapture.Parsers
                 foreach (var dir in dirs)
                 {
                     var quote = new AssetQuote();
-                    quote.Metadata.Name  = Path.GetFileName(dir);
-                    quote.Metadata.Local = Path.GetDirectoryName(dir);
+                    quote.Metadata.Name     = Path.GetFileName(dir);
+                    quote.Metadata.RootPath = Path.GetDirectoryName(dir).Replace("\\","/").Replace("/" + CaptureSetting.DEFAULT_CAPTURE, "");
+                    quote.Metadata.FullPath = Path.GetDirectoryName(dir);
 
                     var files = Directory.GetFiles(dir);
                     foreach (var file in files)
                     {
                         var timel   = new AssetQuoteTimeline();
                         var fn      = Path.GetFileName(file).Replace(".dat","");
-                        timel.Date  = DateTime.Parse(fn);
-                        timel.Local = file;
+
+                        timel.Date     = DateTime.Parse(fn);
+                        timel.Local    = file;
+                        timel.Metadata = quote.Metadata;
                         quote.Timelines.Add(timel);
                     }
                     result.Add(quote);

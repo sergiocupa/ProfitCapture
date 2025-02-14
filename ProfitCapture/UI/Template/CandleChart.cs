@@ -1,5 +1,4 @@
 ﻿using ProfitCapture.Utils;
-using System.Runtime.Intrinsics.Arm;
 using System.Windows.Forms.DataVisualization.Charting;
 
 
@@ -10,60 +9,57 @@ namespace ProfitCapture.UI.Template
     {
 
 
-        public void Append(DateTime x, double open, double close, double low, double high, bool is_update = false, int serie = 0, Color? color = null)
+        public void Append(DateTime x, double open, double close, double low, double high, object data, bool is_update = false, string serie_name = null, int serie_id = 0, Color? color = null)
         {
             if(InvokeRequired)
             {
-                Invoke(() => { AppendInvoke(x, open, close, low, high, is_update, serie, color); });
+                Invoke(() => { AppendInvoke(x, open, close, low, high, data, is_update, serie_id, serie_name, color); });
             }
             else
             {
-                AppendInvoke(x, open, close, low, high, is_update, serie, color);
+                AppendInvoke(x, open, close, low, high, data, is_update, serie_id, serie_name, color);
             }
         }
 
-        private void AppendInvoke(DateTime x, double open, double close, double low, double high, bool is_update, int serie, Color? color)
+        private void AppendInvoke(DateTime x, double open, double close, double low, double high, object data, bool is_update, int _serie_id, string serie_name, Color? color)
         {
             try
             {
-                if (serie >= 0 && serie < Chart.Series.Count)
+                Series serie = null;
+
+                if(!string.IsNullOrEmpty(serie_name))
+                {
+                    serie = Chart.Series.Where(w => w.Name == serie_name).FirstOrDefault();
+                }
+                if(serie == null && _serie_id >= 0 && _serie_id < Chart.Series.Count)
+                {
+                    serie = Chart.Series[_serie_id];
+                }
+
+                if (serie != null)
                 {
                     UpdateY(low,high);
 
                     if(is_update)
                     {
-                        var pt = Chart.Series[serie].Points.LastOrDefault();
+                        var pt = serie.Points.LastOrDefault();
                         if(pt != null)
                         {
-                            try
-                            {
-                                var pp = (CandlePoint)pt;
-                                pp.XValue = x.ToOADate();
-                                pp.InputX = x;
-                                pp.YValues = new double[] { low, high, open, close };
-                            }
-                            catch (Exception ex)
-                            {
-
-                            }
+                            var pp = (CandlePoint)pt;
+                            pp.XValue = x.ToOADate();
+                            pp.InputX = x;
+                            pp.YValues = new double[] { low, high, open, close };
                         }
                     }
                     else
                     {
-                        var dp = new CandlePoint() { InputX = x, XValue = x.ToOADate(), YValues = new double[] { low, high, open, close } };
+                        var dp = new CandlePoint() { InputX = x, XValue = x.ToOADate(), YValues = new double[] { low, high, open, close }, Serie = serie, Data = data };
                         if (color.HasValue)
                         {
                             dp.Color = color.Value;
                         }
 
-                        try
-                        {
-                            Chart.Series[serie].Points.Add(dp);
-                        }
-                        catch (Exception ex)
-                        {
-
-                        }
+                        serie.Points.Add(dp);
                     }
 
                     UpdateRangeX(x, serie);
@@ -76,17 +72,28 @@ namespace ProfitCapture.UI.Template
         }
 
 
-        public void Append(DateTime x, double y, int serie = 0, bool is_update = false, Color? color = null)
+        public void Append(DateTime x, double y, string? serie_name = null, int _serie_id = 0, bool is_update = false, Color? color = null)
         {
             try
             {
-                if (serie >= 0 && serie < Chart.Series.Count)
+                Series serie = null;
+
+                if (!string.IsNullOrEmpty(serie_name))
+                {
+                    serie = Chart.Series.Where(w => w.Name == serie_name).FirstOrDefault();
+                }
+                if (serie == null && _serie_id >= 0 && _serie_id < Chart.Series.Count)
+                {
+                    serie = Chart.Series[_serie_id];
+                }
+
+                if (serie != null)
                 {
                     //UpdateY(y);
 
                     if (is_update)
                     {
-                        var pt = Chart.Series[serie].Points.LastOrDefault();
+                        var pt = serie.Points.LastOrDefault();
                         if (pt != null)
                         {
                             var pp = (CandlePoint)pt;
@@ -103,10 +110,10 @@ namespace ProfitCapture.UI.Template
                             dp.Color = color.Value;
                         }
 
-                        Chart.Series[serie].Points.Add(dp);
+                        serie.Points.Add(dp);
                     }
 
-                    UpdateRangeX(x, serie);
+                    //UpdateRangeX(x, serie);
                 }
             }
             catch (Exception ex)
@@ -116,12 +123,12 @@ namespace ProfitCapture.UI.Template
         }
 
 
-        public void UpdateRangeX(DateTime x, int serie)
+        public void UpdateRangeX(DateTime x, Series serie)
         {
-            if (Chart.Series[serie].Points.Count >= 2)
+            if (serie.Points.Count >= 2)
             {
-                var first = (CandlePoint)Chart.Series[serie].Points.FirstOrDefault();
-                var last  = (CandlePoint)Chart.Series[serie].Points.LastOrDefault();
+                var first = (CandlePoint)serie.Points.FirstOrDefault();
+                var last  = (CandlePoint)serie.Points.LastOrDefault();
                 var dif   = last.InputX.Subtract(first.InputX);
 
                 if (dif > SizeX)
@@ -153,7 +160,7 @@ namespace ProfitCapture.UI.Template
             }
             else
             {
-                var first = (CandlePoint)Chart.Series[serie].Points.FirstOrDefault();
+                var first = (CandlePoint)serie.Points.FirstOrDefault();
                 if (first != null)
                 {
                     // Plota ate fim da tela
@@ -216,44 +223,53 @@ namespace ProfitCapture.UI.Template
 
             SetStep(new TimeSpan(0, 1, 0));
 
-            Append(dt.AddMinutes(1), 82,  94,  80,  100);
-            Append(dt.AddMinutes(2), 105, 106, 100, 110);
-            Append(dt.AddMinutes(3), 106, 119, 100, 120);
-            Append(dt.AddMinutes(4), 120, 121, 119, 125);
-            Append(dt.AddMinutes(5), 125, 128, 120, 130);
-            Append(dt.AddMinutes(6), 116, 114, 110, 120);
+            Append(dt.AddMinutes(1), 82,  94,  80,  100, null);
+            Append(dt.AddMinutes(2), 105, 106, 100, 110, null);
+            Append(dt.AddMinutes(3), 106, 119, 100, 120, null);
+            Append(dt.AddMinutes(4), 120, 121, 119, 125, null);
+            Append(dt.AddMinutes(5), 125, 128, 120, 130, null);
+            Append(dt.AddMinutes(6), 116, 114, 110, 120, null);
         }
 
 
         public void AddSerie(string name, SeriesChartType type = SeriesChartType.Line, Color? color = null)
         {
-            var s = new Series();
-
-            s.Name        = name;
-            s.ChartType   = type;
-            s.BorderWidth = 1;
-            s.YAxisType   = AxisType.Secondary;
-
-            s.IsXValueIndexed = false;
-
-            if (type == SeriesChartType.Candlestick)
+            var ex = Chart.Series.Where(w => w.Name == name).FirstOrDefault();
+            if (ex == null)
             {
-                // Configuração do estilo de vela
-                //s["OpenCloseStyle"] = "Triangle"; // Forma dos marcadores de abertura/fechamento
-                s["OpenCloseStyle"] = "Candlestick"; // Forma dos marcadores de abertura/fechamento
-                s["ShowOpenClose"]  = "Both"; // Mostra abertura e fechamento
-                s["PointWidth"]     = "0.6"; // Largura das velas
+                var s = new Series();
 
-                // Cores de alta e baixa
-                s["PriceUpColor"]   = "#60FFBB"; // Alta
-                s["PriceDownColor"] = "#FFBB60"; // Baixa
-            }
-            else
-            {
-                s.Color = color.HasValue ? color.Value : ColorGenerator.Create();
-            }
+                s.Name = name;
+                s.ChartType = type;
+                s.BorderWidth = 1;
+                s.YAxisType = AxisType.Secondary;
 
-            Chart.Series.Add(s);
+                s.IsXValueIndexed = false;
+
+                if (type == SeriesChartType.Candlestick)
+                {
+                    // Configuração do estilo de vela
+                    //s["OpenCloseStyle"] = "Triangle"; // Forma dos marcadores de abertura/fechamento
+                    s["OpenCloseStyle"] = "Candlestick"; // Forma dos marcadores de abertura/fechamento
+                    s["ShowOpenClose"]  = "Both"; // Mostra abertura e fechamento
+                    s["PointWidth"]     = "0.6"; // Largura das velas
+
+                    // Cores de alta e baixa
+                    s["PriceUpColor"]   = "#60FFBB"; // Alta
+                    s["PriceDownColor"] = "#FFBB60"; // Baixa
+                }
+                else
+                {
+                    s.Color = color.HasValue ? color.Value : ColorGenerator.Create();
+
+                    if (type == SeriesChartType.Point)
+                    {
+                        s.MarkerStyle = MarkerStyle.Circle;
+                        s.MarkerSize  = 6;
+                    }
+                }
+                Chart.Series.Add(s);
+            }
         }
 
 
@@ -381,23 +397,16 @@ namespace ProfitCapture.UI.Template
         }
 
 
-        public class DataPointDistance
-        {
-            public DataPoint Point { get; set; }
-            public double Distance { get; set; }
-            public int SerieIndex { get; set; }
-        }
-
-        private void Chart_MouseClick(object? sender, MouseEventArgs e)
+        private void ChartClick(int x, int y)
         {
             var list = new List<DataPointDistance>();
             double distance = 0;
 
             int ix = 0;
-            while(ix < Chart.Series.Count)
+            while (ix < Chart.Series.Count)
             {
-                DataPoint? dp = GetNearestCandle(Chart, e.X, e.Y, ix, ref distance);
-                if(dp != null)
+                DataPoint? dp = GetNearestCandle(Chart, x, y, ix, ref distance);
+                if (dp != null)
                 {
                     var ob = new DataPointDistance() { Point = dp, Distance = distance, SerieIndex = ix };
                     list.Add(ob);
@@ -406,21 +415,21 @@ namespace ProfitCapture.UI.Template
             }
 
             var ol = list.OrderBy(s => s.Distance).FirstOrDefault();
-            if(ol != null)
+            if (ol != null)
             {
-                DateTime time = DateTime.FromOADate(ol.Point.XValue);
                 var se = Chart.Series[ol.SerieIndex];
 
                 if (se.ChartType == SeriesChartType.Candlestick)
                 {
-                    MessageBox.Show($"{se.Name}:\nHora: {time:HH:mm:ss}\nMáxima: {ol.Point.YValues[0]:F2}\nMínima: {ol.Point.YValues[1]:F2}");
+                    if (SelectedCandle != null) SelectedCandle((CandlePoint)ol.Point);
                 }
                 else
                 {
-                    MessageBox.Show($"{se.Name}:\nHora: {time:HH:mm:ss}\nValor: {ol.Point.YValues[0]:F2}");
+                    //MessageBox.Show($"{se.Name}:\nHora: {time:HH:mm:ss}\nValor: {ol.Point.YValues[0]:F2}");
                 }
             }
         }
+
 
         private void Chart_MouseMove(object? sender, MouseEventArgs e)
         {
@@ -481,9 +490,11 @@ namespace ProfitCapture.UI.Template
         {
             if (e.Button == MouseButtons.Left)
             {
-                IsDragging = true;
-                LastMouseY = e.Y;
-                LastMouseX = e.X;
+                IsDragging  = true;
+                LastMouseY  = e.Y;
+                LastMouseX  = e.X;
+                StartMouseX = e.X;
+                StartMouseY = e.Y;
             }
         }
 
@@ -492,6 +503,12 @@ namespace ProfitCapture.UI.Template
             if (e.Button == MouseButtons.Left)
             {
                 IsDragging = false;
+
+                var md = (Math.Abs(StartMouseX - e.X) + Math.Abs(StartMouseY - e.Y)) / 2.0;
+                if(md < 2)
+                {
+                    ChartClick(e.X,e.Y);
+                }
             }
         }
 
@@ -519,7 +536,6 @@ namespace ProfitCapture.UI.Template
             Chart.MouseUp    += Chart_MouseUp;
             Chart.MouseDown  += Chart_MouseDown;
             Chart.MouseMove  += Chart_MouseMove;
-            Chart.MouseClick += Chart_MouseClick;
 
             Area = new ChartArea() { BackColor = Color.FromArgb(70, 70, 80) };
             Area.Name = "CandleArea";
@@ -568,6 +584,8 @@ namespace ProfitCapture.UI.Template
         }
 
 
+
+        public event Action<CandlePoint> SelectedCandle;
         private TimeSpan? Step;
         private ChartArea Area;
         private TimeSpan SizeX;
@@ -575,6 +593,8 @@ namespace ProfitCapture.UI.Template
         private Chart Chart;
         private double LastMouseY;
         private double LastMouseX;
+        private double StartMouseX;
+        private double StartMouseY;
         private bool IsDragging = false;
 
 
@@ -588,5 +608,17 @@ namespace ProfitCapture.UI.Template
     public class CandlePoint : DataPoint
     {
         public DateTime InputX;
+        public Series Serie;
+        public object Data;
     }
+
+
+    public class DataPointDistance
+    {
+        public DataPoint Point { get; set; }
+        public double Distance { get; set; }
+        public int SerieIndex { get; set; }
+    }
+
+
 }

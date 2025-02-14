@@ -7,8 +7,8 @@
         public string Name { get; set; }
         public string Value { get; set; }
         public ulong Count { get; set; }
-
-        public string Local { get; set; }
+        public string RootPath { get; set; }
+        public string FullPath { get; set; }
 
 
         public override string ToString()

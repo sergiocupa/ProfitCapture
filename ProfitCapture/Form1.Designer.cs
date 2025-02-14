@@ -43,6 +43,7 @@
             CandlePeriods = new ComboBox();
             label3 = new Label();
             panel8 = new Panel();
+            SalvarMarcacoes = new CheckBox();
             label6 = new Label();
             label5 = new Label();
             numericUpDown1 = new NumericUpDown();
@@ -105,7 +106,7 @@
             tabControl1.Name = "tabControl1";
             tabControl1.Padding = new Point(0, 0);
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(1128, 549);
+            tabControl1.Size = new Size(1229, 549);
             tabControl1.TabIndex = 5;
             // 
             // tabPage1
@@ -115,7 +116,7 @@
             tabPage1.Location = new Point(4, 24);
             tabPage1.Margin = new Padding(0);
             tabPage1.Name = "tabPage1";
-            tabPage1.Size = new Size(1120, 521);
+            tabPage1.Size = new Size(1221, 521);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "tabPage1";
             // 
@@ -138,7 +139,7 @@
             tableLayoutPanel2.RowCount = 2;
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel2.Size = new Size(1120, 521);
+            tableLayoutPanel2.Size = new Size(1221, 521);
             tableLayoutPanel2.TabIndex = 0;
             // 
             // panel5
@@ -147,7 +148,7 @@
             panel5.Location = new Point(250, 34);
             panel5.Margin = new Padding(0);
             panel5.Name = "panel5";
-            panel5.Size = new Size(870, 487);
+            panel5.Size = new Size(971, 487);
             panel5.TabIndex = 2;
             // 
             // panel4
@@ -223,6 +224,7 @@
             // 
             // panel8
             // 
+            panel8.Controls.Add(SalvarMarcacoes);
             panel8.Controls.Add(label6);
             panel8.Controls.Add(label5);
             panel8.Controls.Add(numericUpDown1);
@@ -233,14 +235,25 @@
             panel8.Location = new Point(250, 0);
             panel8.Margin = new Padding(0);
             panel8.Name = "panel8";
-            panel8.Size = new Size(870, 34);
+            panel8.Size = new Size(971, 34);
             panel8.TabIndex = 5;
+            // 
+            // SalvarMarcacoes
+            // 
+            SalvarMarcacoes.AutoSize = true;
+            SalvarMarcacoes.ForeColor = Color.White;
+            SalvarMarcacoes.Location = new Point(437, 7);
+            SalvarMarcacoes.Name = "SalvarMarcacoes";
+            SalvarMarcacoes.Size = new Size(117, 19);
+            SalvarMarcacoes.TabIndex = 1;
+            SalvarMarcacoes.Text = "Salvar marcações";
+            SalvarMarcacoes.UseVisualStyleBackColor = true;
             // 
             // label6
             // 
             label6.Font = new Font("Segoe UI", 8F);
             label6.ForeColor = Color.FromArgb(60, 200, 255);
-            label6.Location = new Point(480, 17);
+            label6.Location = new Point(600, 17);
             label6.Name = "label6";
             label6.Size = new Size(553, 15);
             label6.TabIndex = 5;
@@ -250,7 +263,7 @@
             // 
             label5.Font = new Font("Segoe UI", 8F);
             label5.ForeColor = Color.FromArgb(60, 200, 255);
-            label5.Location = new Point(480, 1);
+            label5.Location = new Point(600, 1);
             label5.Name = "label5";
             label5.Size = new Size(553, 15);
             label5.TabIndex = 4;
@@ -260,7 +273,7 @@
             // 
             numericUpDown1.BackColor = Color.FromArgb(60, 60, 60);
             numericUpDown1.ForeColor = Color.White;
-            numericUpDown1.Location = new Point(178, 7);
+            numericUpDown1.Location = new Point(158, 7);
             numericUpDown1.Margin = new Padding(0);
             numericUpDown1.Name = "numericUpDown1";
             numericUpDown1.Size = new Size(60, 23);
@@ -282,7 +295,7 @@
             // 
             label4.AutoSize = true;
             label4.ForeColor = Color.White;
-            label4.Location = new Point(112, 9);
+            label4.Location = new Point(92, 9);
             label4.Name = "label4";
             label4.Size = new Size(64, 15);
             label4.TabIndex = 2;
@@ -292,7 +305,7 @@
             // 
             checkBox1.AutoSize = true;
             checkBox1.ForeColor = Color.White;
-            checkBox1.Location = new Point(255, 8);
+            checkBox1.Location = new Point(235, 8);
             checkBox1.Name = "checkBox1";
             checkBox1.Size = new Size(186, 19);
             checkBox1.TabIndex = 0;
@@ -306,7 +319,7 @@
             tabPage2.Location = new Point(4, 24);
             tabPage2.Margin = new Padding(0);
             tabPage2.Name = "tabPage2";
-            tabPage2.Size = new Size(1120, 521);
+            tabPage2.Size = new Size(1221, 521);
             tabPage2.TabIndex = 1;
             tabPage2.Text = "Captura";
             // 
@@ -324,7 +337,7 @@
             tableLayoutPanel1.RowCount = 2;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 19.43128F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 80.56872F));
-            tableLayoutPanel1.Size = new Size(1120, 521);
+            tableLayoutPanel1.Size = new Size(1221, 521);
             tableLayoutPanel1.TabIndex = 6;
             // 
             // panel1
@@ -337,7 +350,7 @@
             panel1.Location = new Point(0, 0);
             panel1.Margin = new Padding(0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(1120, 101);
+            panel1.Size = new Size(1221, 101);
             panel1.TabIndex = 0;
             // 
             // button1
@@ -357,7 +370,7 @@
             panel2.Location = new Point(0, 101);
             panel2.Margin = new Padding(0);
             panel2.Name = "panel2";
-            panel2.Size = new Size(1120, 420);
+            panel2.Size = new Size(1221, 420);
             panel2.TabIndex = 1;
             // 
             // Form1
@@ -365,7 +378,7 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(60, 60, 60);
-            ClientSize = new Size(1128, 549);
+            ClientSize = new Size(1229, 549);
             Controls.Add(tabControl1);
             Name = "Form1";
             Text = "Form1";
@@ -411,5 +424,6 @@
         internal Label label5;
         internal Label label6;
         internal ComboBox CandlePeriods;
+        internal CheckBox SalvarMarcacoes;
     }
 }

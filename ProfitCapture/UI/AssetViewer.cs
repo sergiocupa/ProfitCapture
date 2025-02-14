@@ -2,6 +2,7 @@
 using ProfitCapture.Parsers;
 using ProfitCapture.UI.Template;
 using System.ComponentModel;
+using System.Windows.Forms.DataVisualization.Charting;
 
 
 namespace ProfitCapture.UI
@@ -12,8 +13,11 @@ namespace ProfitCapture.UI
 
         public void ViewAssetList()
         {
+            // Implementar carregamente de markups, se existe para a data correspondente ao arquivo de captura
+            
+
             var setts = CaptureSetting.Load();
-            var at    = AssetQuoteParser.ReadAssembleAssets(setts.CaptureLocation);
+            var at    = AssetQuoteParser.ReadAssembleAssets(setts.GetCompleteCaptureLocation());
 
             var act = (List<AssetQuote> a) =>
             {
@@ -277,6 +281,58 @@ namespace ProfitCapture.UI
         }
 
 
+
+        private void AssetChart_SelectedCandle(CandlePoint obj)
+        {
+            //DateTime time = DateTime.FromOADate(obj.XValue);
+            //MessageBox.Show($"{obj.Name}:\nHora: {time:HH:mm:ss}\nMáxima: {obj.YValues[0]:F2}\nMínima: {obj.YValues[1]:F2}");
+
+            if (SelectedTimeline != null)
+            {
+                if (Principal.SalvarMarcacoes.Checked)
+                {
+                    AssetChart.AddSerie("Marking", SeriesChartType.Point);
+                    SelectedTimeline.PrepareMarking();
+
+                    var data = (AssetQuoteTimelinePeriod)obj.Data;
+
+                    var posit = !SelectedTimeline.IsLongTrade ? data.Open : data.Close;
+                    AssetChart.Append(data.Time, (double)posit, "Marking");
+
+                    var pos = SelectedTimeline.Markings.Where(w => w.Index == data.Index).FirstOrDefault();
+
+                    if(pos != null)
+                    {
+                        if(pos.Note == null) pos.Note = new Note();
+
+                        if(!SelectedTimeline.IsLongTrade)
+                        {
+                            pos.Note.Transact = TransactOption.Buy;
+                        }
+                        else
+                        {
+                            pos.Note.Transact = TransactOption.Sell;
+
+                            // Linkar marcaçoes
+                            AssetChart.AddSerie(pos.Note.UID, SeriesChartType.Line);
+                            AssetChart.Append(SelectedTimeline.PreviusSelectedCandle.Time, (double)SelectedTimeline.PreviusSelectedCandle.Open, pos.Note.UID);
+                            AssetChart.Append(data.Time, (double)data.Close, pos.Note.UID);
+
+                            // Apresentar faixa
+                        }
+
+                        SelectedTimeline.SaveMarkings();
+                    }
+
+                    SelectedTimeline.IsLongTrade = !SelectedTimeline.IsLongTrade;
+                    SelectedTimeline.PreviusSelectedCandle = data;
+                }
+            }
+        }
+
+
+
+
         decimal MediaMovel(int periodos, ulong index, List<AssetQuoteTimelinePeriod> candles)
         {
             if(periodos <= 0)
@@ -313,16 +369,16 @@ namespace ProfitCapture.UI
 
         public void PlotLine01(DateTime x, decimal y, bool add)
         {
-            AssetChart.Append(x, (double)y, 1, !add);
+            AssetChart.Append(x, (double)y, _serie_id: 1, is_update: !add);
         }
         public void PlotLine02(DateTime x, decimal y, bool add)
         {
-            AssetChart.Append(x, (double)y, 2, !add);
+            AssetChart.Append(x, (double)y, _serie_id: 2, is_update: !add);
         }
 
         public void PlotCandle(AssetQuoteTimelinePeriod candle, bool add)
         {
-            AssetChart.Append(candle.Time, (double)candle.Open, (double)candle.Close, (double)candle.Min, (double)candle.Max, !add);
+            AssetChart.Append(candle.Time, (double)candle.Open, (double)candle.Close, (double)candle.Min, (double)candle.Max, candle, !add);
         }
 
 
@@ -360,6 +416,8 @@ namespace ProfitCapture.UI
 
             AssetChart.AddSerie("Media9");
             AssetChart.AddSerie("Media21");
+
+            AssetChart.SelectedCandle += AssetChart_SelectedCandle;
 
             DataGridViewTemplate.EsquemaBrancoLinhaAlternada(AssetGrid, true);
             DataGridViewTemplate.EsquemaBrancoLinhaAlternada(DatetimeGrid, true);
