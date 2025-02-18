@@ -1,8 +1,11 @@
-﻿using ProfitCapture.Models;
+﻿using Newtonsoft.Json;
+using ProfitCapture.Indicators;
+using ProfitCapture.Models;
 using ProfitCapture.Parsers;
 using ProfitCapture.UI.Template;
 using System.ComponentModel;
 using System.Windows.Forms.DataVisualization.Charting;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace ProfitCapture.UI
@@ -99,15 +102,142 @@ namespace ProfitCapture.UI
         }
 
 
-        private void ProtCandles(AssetQuoteTimelinePeriod candle, bool newc)
+        public void AssembleTimeline(Action<AssetQuoteTimelinePeriod,bool> plot)
         {
-            PlotCandle(candle, newc);
+            SelectedTimeline.Points = AssetQuoteParser.ReadAssembleTimelinePoints(SelectedTimeline, 0);
+            var om = SelectedTimeline.Points.OrderBy(o => o.Time).ToList();
+            var first = om.FirstOrDefault();
+            var last = om.LastOrDefault();
 
-            var media9  = MediaMovel(9, candle.Index, SelectedTimeline.Periods);
-            var media21 = MediaMovel(21, candle.Index, SelectedTimeline.Periods);
+            Principal.label5.Invoke(() =>
+            {
+                Principal.label5.Text = first != null ? first.Time.ToString("dd/MM/yyyy HH:mm:ss") : "###" + " < > " + last != null ? last.Time.ToString("dd/MM/yyyy HH:mm:ss") : "###";
+            });
 
-            PlotLine01(candle.Time, media9, newc);
-            PlotLine02(candle.Time, media21, newc);
+            SelectedTimeline.Periods.Clear();
+
+            AssetQuoteTimelinePoint previus = null;
+            AssetQuoteTimelinePeriod candle = null;
+            AssetQuoteTimelinePoint stop_prev = null;
+            var stop_time_dur = new DateTime();
+
+            var ord = SelectedTimeline.Points.OrderBy(o => o.Last);
+            var min = ord.FirstOrDefault();
+            var max = ord.LastOrDefault();
+            var vmin = 0.0;
+            var vmax = 0.0;
+            if (ord.Count() > 1)
+            {
+                vmin = (double)min.Last;
+                vmax = (double)max.Last;
+            }
+            else if (ord.Count() == 1)
+            {
+                vmin = (double)max.Last;
+                vmax = (double)max.Last;
+            }
+            AssetChart.ResetY(vmin, vmax);
+
+            AssetQuoteTimelinePoint point = null;
+
+            while (Running && SelectedPoint < SelectedTimeline.Points.Count)
+            {
+                point = SelectedTimeline.Points[SelectedPoint];
+                var ti = CandlePeriod.RoundToNearestInterval(point.Time, SelectedTimeline.SelectedDuration);
+
+                // Usar exemplo do chatgpt
+                bool newc = false;
+                if (previus != null)
+                {
+                    if (point.Time >= stop_time_dur)
+                    {
+                        if (candle != null)
+                        {
+                            candle.Close = point.Last;
+                        }
+
+                        // Criar vela
+                        candle = new AssetQuoteTimelinePeriod()
+                        {
+                            Open = point.Last,
+                            Current = point.Last,
+                            Duration = SelectedTimeline.SelectedDuration,
+                            Index = (ulong)SelectedTimeline.Periods.Count,
+                            Time = ti,
+                            Min = point.Last,
+                            Max = point.Last,
+                            Close = point.Last
+                        };
+
+                        stop_time_dur = CandlePeriod.AddInterval(point.Time, SelectedTimeline.SelectedDuration);
+
+                        SelectedTimeline.Periods.Add(candle);
+                        stop_prev = null;
+                        newc = true;
+                    }
+                }
+                else
+                {
+                    if (stop_prev == null)
+                    {
+                        // Criar vela
+                        candle = new AssetQuoteTimelinePeriod()
+                        {
+                            Open = point.Last,
+                            Current = point.Last,
+                            Duration = SelectedTimeline.SelectedDuration,
+                            Index = (ulong)SelectedTimeline.Periods.Count,
+                            Time = ti,
+                            Min = point.Last,
+                            Max = point.Last,
+                            Close = point.Last
+                        };
+
+                        stop_time_dur = CandlePeriod.AddInterval(point.Time, SelectedTimeline.SelectedDuration);
+                        SelectedTimeline.Periods.Add(candle);
+                        newc = true;
+                    }
+                }
+
+                // atualizar vela
+                candle.Points.Add(point);
+                candle.Close = point.Last;
+                candle.Current = point.Last;
+
+                if (candle.Current > candle.Max)
+                {
+                    candle.Max = candle.Current;
+                }
+                if (candle.Current < candle.Min)
+                {
+                    candle.Min = candle.Current;
+                }
+
+                if (!ProcessEntireTimeline)
+                {
+                    Principal.label6.Invoke(() =>
+                    {
+                        Principal.label6.Text = "Count: " + SelectedPoint + "/" + SelectedTimeline.Points.Count + " | Current: " + point.Last + " | Min: " + candle.Min + " | Max: " + candle.Max;
+                    });
+
+                    if (plot != null) plot(candle, newc);
+
+                    TimelineMre.Reset();
+                    TimelineMre.Wait(1);
+                }
+
+                if (stop_prev == null)
+                {
+                    stop_prev = point;
+                }
+                previus = point;
+                SelectedPoint++;
+            }
+
+            Principal.label6.Invoke(() =>
+            {
+                Principal.label6.Text = "Count: " + SelectedPoint + "/" + SelectedTimeline.Points.Count + " | Current: " + point.Last + " | Min: " + candle.Min + " | Max: " + candle.Max;
+            });
         }
 
         public void Start()
@@ -123,143 +253,45 @@ namespace ProfitCapture.UI
 
                     ProcessEntireTimeline = true;
 
-                    SelectedTimeline.Points = AssetQuoteParser.ReadAssembleTimelinePoints(SelectedTimeline, 0);
-                    var om = SelectedTimeline.Points.OrderBy(o => o.Time).ToList();
-                    var first = om.FirstOrDefault();
-                    var last = om.LastOrDefault();
+                    var loc = SelectedTimeline.Metadata.RootPath + "/" + CaptureSetting.DEFAULT_MARKING + "/" + SelectedTimeline.Metadata.Name + "/" + SelectedTimeline.Date.ToString("yyyy-MM-dd") + ".json";
 
-                    Principal.label5.Invoke(() =>
+                    if(File.Exists(loc))
                     {
-                        Principal.label5.Text = first != null ? first.Time.ToString("dd/MM/yyyy HH:mm:ss") : "###" + " < > " + last != null ? last.Time.ToString("dd/MM/yyyy HH:mm:ss") : "###";
-                    });
+                        var json = File.ReadAllText(loc);
+                        SelectedTimeline.Periods = JsonConvert.DeserializeObject<List<AssetQuoteTimelinePeriod>>(json);
 
-                    SelectedTimeline.Periods.Clear();
+                        AssetChart.AddSerie("Marking", SeriesChartType.Point);
+                        SelectedTimeline.PrepareMarking();
 
-                    AssetQuoteTimelinePoint previus = null;
-                    AssetQuoteTimelinePeriod candle = null;
-                    AssetQuoteTimelinePoint stop_prev = null;
-                    var stop_time_dur = new DateTime();
+                        //AssetQuoteTimelinePeriod begin = null;
 
-                    var ord = SelectedTimeline.Points.OrderBy(o => o.Last);
-                    var min = ord.FirstOrDefault();
-                    var max = ord.LastOrDefault();
-                    var vmin = 0.0;
-                    var vmax = 0.0;
-                    if (ord.Count() > 1)
-                    {
-                        vmin = (double)min.Last;
-                        vmax = (double)max.Last;
+                        //foreach (var period in SelectedTimeline.Periods)
+                        //{
+                        //    if (period.Note != null)
+                        //    {
+                        //        if (period.Note.Transact == TransactOption.Buy)
+                        //        {
+                        //            begin = period;
+                        //        }
+                        //        else if (period.Note.Transact == TransactOption.Sell)
+                        //        {
+                        //            period.Note.BeginPeriod = begin;
+                        //        }
+                        //    }
+                        //}
+
+                        //var jm = JsonConvert.SerializeObject(SelectedTimeline.Periods, Formatting.Indented);
+                        //File.WriteAllText(loc, jm);
                     }
-                    else if (ord.Count() == 1)
+                    else
                     {
-                        vmin = (double)max.Last;
-                        vmax = (double)max.Last;
+                        AssembleTimeline(ProtCandles);
                     }
-                    AssetChart.ResetY(vmin, vmax);
-
-                    AssetQuoteTimelinePoint point = null;
-
-                    while (Running && SelectedPoint < SelectedTimeline.Points.Count)
-                    {
-                        point = SelectedTimeline.Points[SelectedPoint];
-                        var ti = CandlePeriod.RoundToNearestInterval(point.Time, SelectedTimeline.SelectedDuration);
-
-                        // Usar exemplo do chatgpt
-                        bool newc = false;
-                        if (previus != null)
-                        {
-                            if (point.Time >= stop_time_dur)
-                            {
-                                if (candle != null)
-                                {
-                                    candle.Close = point.Last;
-                                }
-
-                                // Criar vela
-                                candle = new AssetQuoteTimelinePeriod()
-                                {
-                                    Open = point.Last,
-                                    Current = point.Last,
-                                    Duration = SelectedTimeline.SelectedDuration,
-                                    Index = (ulong)SelectedTimeline.Periods.Count,
-                                    Time = ti,
-                                    Min = point.Last,
-                                    Max = point.Last,
-                                    Close = point.Last
-                                };
-
-                                stop_time_dur = CandlePeriod.AddInterval(point.Time, SelectedTimeline.SelectedDuration);
-
-                                SelectedTimeline.Periods.Add(candle);
-                                stop_prev = null;
-                                newc = true;
-                            }
-                        }
-                        else
-                        {
-                            if (stop_prev == null)
-                            {
-                                // Criar vela
-                                candle = new AssetQuoteTimelinePeriod()
-                                {
-                                    Open = point.Last,
-                                    Current = point.Last,
-                                    Duration = SelectedTimeline.SelectedDuration,
-                                    Index = (ulong)SelectedTimeline.Periods.Count,
-                                    Time = ti,
-                                    Min = point.Last,
-                                    Max = point.Last,
-                                    Close = point.Last
-                                };
-
-                                stop_time_dur = CandlePeriod.AddInterval(point.Time, SelectedTimeline.SelectedDuration);
-                                SelectedTimeline.Periods.Add(candle);
-                                newc = true;
-                            }
-                        }
-
-                        // atualizar vela
-                        candle.Points.Add(point);
-                        candle.Close = point.Last;
-                        candle.Current = point.Last;
-
-                        if (candle.Current > candle.Max)
-                        {
-                            candle.Max = candle.Current;
-                        }
-                        if (candle.Current < candle.Min)
-                        {
-                            candle.Min = candle.Current;
-                        }
-
-                        if (!ProcessEntireTimeline)
-                        {
-                            Principal.label6.Invoke(() =>
-                            {
-                                Principal.label6.Text = "Count: " + SelectedPoint + "/" + SelectedTimeline.Points.Count + " | Current: " + point.Last + " | Min: " + candle.Min + " | Max: " + candle.Max;
-                            });
-
-                            ProtCandles(candle, newc);
-
-                            TimelineMre.Reset();
-                            TimelineMre.Wait(1);
-                        }
-
-                        if (stop_prev == null)
-                        {
-                            stop_prev = point;
-                        }
-                        previus = point;
-                        SelectedPoint++;
-                    }
-
-                    Principal.label6.Invoke(() =>
-                    {
-                        Principal.label6.Text = "Count: " + SelectedPoint + "/" + SelectedTimeline.Points.Count + " | Current: " + point.Last + " | Min: " + candle.Min + " | Max: " + candle.Max;
-                    });
 
                     if (ProcessEntireTimeline)
                     {
+                        AssetChart.Suspend();
+
                         int ix = 0;
                         while (ix < SelectedTimeline.Periods.Count)
                         {
@@ -267,6 +299,8 @@ namespace ProfitCapture.UI
                             ProtCandles(cand, true);
                             ix++;
                         }
+                        AssetChart.Resume();
+
                     }
                 }
                 catch (Exception ex)
@@ -280,7 +314,44 @@ namespace ProfitCapture.UI
             TimelineThr.Start();
         }
 
+        private void ProtCandles(AssetQuoteTimelinePeriod candle, bool newc)
+        {
+            try
+            {
+                AssetChart.Append(candle.Time, (double)candle.Open, (double)candle.Close, (double)candle.Min, (double)candle.Max, candle, !newc, layout_control: false);
 
+
+                if (candle.Note != null)
+                {
+                    if (candle.Note.Transact == TransactOption.Buy)
+                    {
+                        //AssetChart.AddSerie("Marking", SeriesChartType.Point);
+                        //SelectedTimeline.PrepareMarking();
+
+                        AssetChart.Append(candle.Time, (double)candle.Open, "Marking", layout_control: false);
+                    }
+                    else if (candle.Note.Transact == TransactOption.Sell)
+                    {
+                        AssetChart.Append(candle.Time, (double)candle.Close, "Marking", layout_control: false);
+
+                        //// Linha de fechamento do periodo
+                        AssetChart.AddSerie(candle.Note.UID, SeriesChartType.Line, Color.FromArgb(120, 255, 200), layout_control: false);
+                        AssetChart.Append(candle.Note.BeginPeriod.Time, (double)candle.Note.BeginPeriod.Open, candle.Note.UID, layout_control: false);
+                        AssetChart.Append(candle.Time, (double)candle.Close, candle.Note.UID, layout_control: false);
+                    }
+                }
+
+                var media9  = Average.Moving(9, candle.Index, SelectedTimeline.Periods);
+                var media21 = Average.Moving(21, candle.Index, SelectedTimeline.Periods);
+
+                AssetChart.Append(candle.Time, (double)media9,  _serie_id: 1, is_update: !newc, layout_control: false);
+                AssetChart.Append(candle.Time, (double)media21, _serie_id: 2, is_update: !newc, layout_control: false);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         private void AssetChart_SelectedCandle(CandlePoint obj)
         {
@@ -307,18 +378,19 @@ namespace ProfitCapture.UI
 
                         if(!SelectedTimeline.IsLongTrade)
                         {
-                            pos.Note.Transact = TransactOption.Buy;
+                            pos.Note.NoteDesignation = NoteDesignation.StartPoint;
+                            pos.Note.Transact        = TransactOption.Buy;
                         }
                         else
                         {
-                            pos.Note.Transact = TransactOption.Sell;
+                            pos.Note.NoteDesignation = NoteDesignation.EndPoint;
+                            pos.Note.Transact        = TransactOption.Sell;
+                            pos.Note.BeginPeriod     = SelectedTimeline.PreviusSelectedCandle;
 
-                            // Linkar marcaçoes
+                            // Linha de fechamento do periodo
                             AssetChart.AddSerie(pos.Note.UID, SeriesChartType.Line);
                             AssetChart.Append(SelectedTimeline.PreviusSelectedCandle.Time, (double)SelectedTimeline.PreviusSelectedCandle.Open, pos.Note.UID);
                             AssetChart.Append(data.Time, (double)data.Close, pos.Note.UID);
-
-                            // Apresentar faixa
                         }
 
                         SelectedTimeline.SaveMarkings();
@@ -331,54 +403,10 @@ namespace ProfitCapture.UI
         }
 
 
-
-
-        decimal MediaMovel(int periodos, ulong index, List<AssetQuoteTimelinePeriod> candles)
-        {
-            if(periodos <= 0)
-            {
-                periodos = 1;
-            }
-
-            if(index <= 0)
-            {
-                return (candles.Count > 0) ? candles[0].Close : 0;
-            }
-
-            var mi = 0.0m;
-            int sm = 0;
-            int ix = (int)index;
-            while(ix > 0 && sm < periodos)
-            {
-                var cand = candles[ix];
-                var me = cand.Close;
-                mi += me;
-                ix--;
-                sm++;
-            }
-            var average = mi / (decimal)sm;
-            return average;
-        }
-
-
         public void Stop()
         {
             Running = false;
             TimelineMre.Set();
-        }
-
-        public void PlotLine01(DateTime x, decimal y, bool add)
-        {
-            AssetChart.Append(x, (double)y, _serie_id: 1, is_update: !add);
-        }
-        public void PlotLine02(DateTime x, decimal y, bool add)
-        {
-            AssetChart.Append(x, (double)y, _serie_id: 2, is_update: !add);
-        }
-
-        public void PlotCandle(AssetQuoteTimelinePeriod candle, bool add)
-        {
-            AssetChart.Append(candle.Time, (double)candle.Open, (double)candle.Close, (double)candle.Min, (double)candle.Max, candle, !add);
         }
 
 

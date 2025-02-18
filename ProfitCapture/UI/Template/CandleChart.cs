@@ -1,4 +1,5 @@
 ﻿using ProfitCapture.Utils;
+using System.Drawing;
 using System.Windows.Forms.DataVisualization.Charting;
 
 
@@ -9,22 +10,24 @@ namespace ProfitCapture.UI.Template
     {
 
 
-        public void Append(DateTime x, double open, double close, double low, double high, object data, bool is_update = false, string serie_name = null, int serie_id = 0, Color? color = null)
+        public void Append(DateTime x, double open, double close, double low, double high, object data, bool is_update = false, string serie_name = null, int serie_id = 0, Color? color = null, bool layout_control = true)
         {
             if(InvokeRequired)
             {
-                Invoke(() => { AppendInvoke(x, open, close, low, high, data, is_update, serie_id, serie_name, color); });
+                Invoke(() => { AppendInvoke(x, open, close, low, high, data, is_update, serie_id, serie_name, color, layout_control); });
             }
             else
             {
-                AppendInvoke(x, open, close, low, high, data, is_update, serie_id, serie_name, color);
+                AppendInvoke(x, open, close, low, high, data, is_update, serie_id, serie_name, color, layout_control);
             }
         }
 
-        private void AppendInvoke(DateTime x, double open, double close, double low, double high, object data, bool is_update, int _serie_id, string serie_name, Color? color)
+        private void AppendInvoke(DateTime x, double open, double close, double low, double high, object data, bool is_update, int _serie_id, string serie_name, Color? color, bool layout_control)
         {
             try
             {
+                if(layout_control) Chart.SuspendLayout();
+
                 Series serie = null;
 
                 if(!string.IsNullOrEmpty(serie_name))
@@ -64,6 +67,8 @@ namespace ProfitCapture.UI.Template
 
                     UpdateRangeX(x, serie);
                 }
+
+                if (layout_control) Chart.ResumeLayout();
             }
             catch (Exception ex) 
             { 
@@ -72,10 +77,26 @@ namespace ProfitCapture.UI.Template
         }
 
 
-        public void Append(DateTime x, double y, string? serie_name = null, int _serie_id = 0, bool is_update = false, Color? color = null)
+
+        public void Append(DateTime x, double y, string? serie_name = null, int _serie_id = 0, bool is_update = false, Color? color = null, bool layout_control = true)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(() => { AppendInvoke(x, y, serie_name, _serie_id, is_update, color, layout_control); });
+            }
+            else
+            {
+                AppendInvoke(x, y, serie_name, _serie_id, is_update, color, layout_control);
+            }
+        }
+
+
+        private void AppendInvoke(DateTime x, double y, string? serie_name, int _serie_id, bool is_update, Color? color, bool layout_control)
         {
             try
             {
+                if (layout_control) Chart.SuspendLayout();
+
                 Series serie = null;
 
                 if (!string.IsNullOrEmpty(serie_name))
@@ -115,6 +136,8 @@ namespace ProfitCapture.UI.Template
 
                     //UpdateRangeX(x, serie);
                 }
+
+                if (layout_control) Chart.ResumeLayout();
             }
             catch (Exception ex)
             {
@@ -123,7 +146,7 @@ namespace ProfitCapture.UI.Template
         }
 
 
-        public void UpdateRangeX(DateTime x, Series serie)
+        private void UpdateRangeX(DateTime x, Series serie)
         {
             if (serie.Points.Count >= 2)
             {
@@ -184,10 +207,25 @@ namespace ProfitCapture.UI.Template
         }
 
 
-        public void ResetY(double min, double max)
+        public void ResetY(double min, double max, bool layout_control = true)
         {
-            Chart.ChartAreas[0].AxisY2.Minimum = min;
-            Chart.ChartAreas[0].AxisY2.Maximum = max;
+            if (layout_control) Chart.SuspendLayout();
+
+            if (Chart.InvokeRequired)
+            {
+                Chart.Invoke(() => 
+                {
+                    Chart.ChartAreas[0].AxisY2.Minimum = min;
+                    Chart.ChartAreas[0].AxisY2.Maximum = max;
+                });
+            }
+            else
+            {
+                Chart.ChartAreas[0].AxisY2.Minimum = min;
+                Chart.ChartAreas[0].AxisY2.Maximum = max;
+            }
+
+            if (layout_control) Chart.ResumeLayout();
         }
 
 
@@ -231,12 +269,25 @@ namespace ProfitCapture.UI.Template
             Append(dt.AddMinutes(6), 116, 114, 110, 120, null);
         }
 
+        public void AddSerie(string name, SeriesChartType type = SeriesChartType.Line, Color? color = null, bool layout_control = true)
+        {
+            if (Chart.InvokeRequired)
+            {
+                Chart.Invoke(() => { _AddSerie(name, type, color, layout_control); });
+            }
+            else
+            {
+                _AddSerie(name, type, color, layout_control);
+            }
+        }
 
-        public void AddSerie(string name, SeriesChartType type = SeriesChartType.Line, Color? color = null)
+        private void _AddSerie(string name, SeriesChartType type, Color? color, bool layout_control)
         {
             var ex = Chart.Series.Where(w => w.Name == name).FirstOrDefault();
             if (ex == null)
             {
+                if (layout_control) Chart.SuspendLayout();
+
                 var s = new Series();
 
                 s.Name = name;
@@ -255,7 +306,7 @@ namespace ProfitCapture.UI.Template
                     s["PointWidth"]     = "0.6"; // Largura das velas
 
                     // Cores de alta e baixa
-                    s["PriceUpColor"]   = "#60FFBB"; // Alta
+                    s["PriceUpColor"]   = "#78C8FF"; // Alta
                     s["PriceDownColor"] = "#FFBB60"; // Baixa
                 }
                 else
@@ -269,6 +320,8 @@ namespace ProfitCapture.UI.Template
                     }
                 }
                 Chart.Series.Add(s);
+
+                if (layout_control) Chart.ResumeLayout();
             }
         }
 
@@ -583,6 +636,15 @@ namespace ProfitCapture.UI.Template
             InitAxisX();
         }
 
+
+        public void Suspend()
+        {
+            Chart.SuspendLayout();
+        }
+        public void Resume()
+        {
+            Chart.ResumeLayout();
+        }
 
 
         public event Action<CandlePoint> SelectedCandle;

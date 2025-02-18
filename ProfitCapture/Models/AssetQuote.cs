@@ -84,8 +84,6 @@ namespace ProfitCapture.Models
         public decimal Last;
         public decimal Negotiations;
         public decimal Volumes;
-        public Note Note;
-        public Note Prediction;
 
 
         public AssetQuoteTimelinePoint(AssetQuoteTimelinePoint a)
@@ -97,8 +95,6 @@ namespace ProfitCapture.Models
                 Last = a.Last;
                 Negotiations = a.Negotiations;
                 Volumes = a.Volumes;
-                Note = a.Note != null ? new Note(a.Note) : null;
-                Prediction = a.Prediction != null ? new Note(a.Prediction) : null;
             }
         }
 
@@ -157,10 +153,21 @@ namespace ProfitCapture.Models
         }
     }
 
+
+    public enum NoteDesignation
+    {
+        None       = 0,
+        StartPoint = 1,
+        EndPoint   = 2
+    }
+
     public class Note
     {
-        public string UID;
-        public TransactOption Transact;
+        public string          UID;
+        public TransactOption  Transact;
+        public NoteDesignation NoteDesignation;
+        public AssetQuoteTimelinePeriod BeginPeriod;
+        public AssetQuoteTimelinePoint BeginPoint;
 
 
         public Note(Note a)
@@ -174,8 +181,9 @@ namespace ProfitCapture.Models
 
         public Note()
         {
-            Transact = TransactOption.None;
-            UID = Guid.NewGuid().ToString().Replace("-", "").ToUpper();
+            Transact        = TransactOption.None;
+            UID             = Guid.NewGuid().ToString().Replace("-", "").ToUpper();
+            NoteDesignation = NoteDesignation.None;
         }
     }
 
